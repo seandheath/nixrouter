@@ -74,7 +74,8 @@ info:
 deploy:
 	nixos-rebuild switch --flake .#router --target-host root@$(HOST) --build-host localhost
 
-# Build an ISO for installation
-iso:
-	@echo "ISO generation not yet implemented"
-	@echo "Use the NixOS minimal ISO and run install.sh"
+# Show module options
+options:
+	@echo "router.adminKeys     - SSH public keys for admin user (required)"
+	@echo "router.interfaces.wan - WAN interface name (required)"
+	@echo "router.interfaces.lan - LAN interface name (required)"

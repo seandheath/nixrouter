@@ -1,4 +1,10 @@
-# sops-nix secrets management configuration
+# sops-nix secrets management configuration (optional)
+#
+# This module is NOT imported by default. To use it:
+#   1. Add sops-nix input to your flake
+#   2. Import sops-nix.nixosModules.sops
+#   3. Import this module
+#   4. Set sops.defaultSopsFile to your secrets file
 #
 # Uses age encryption for secrets. The age private key is stored at
 # /nix/persist/var/lib/sops-nix/key.txt and persists across reboots.
@@ -18,11 +24,11 @@
     # Age key file location (persisted via impermanence)
     age.keyFile = "/nix/persist/var/lib/sops-nix/key.txt";
 
-    # Default secrets file
-    defaultSopsFile = ../secrets/secrets.yaml;
+    # Set defaultSopsFile in your consuming flake:
+    # sops.defaultSopsFile = ./secrets/secrets.yaml;
 
     # Validate secrets at build time
-    validateSopsFiles = false;  # Set to true once secrets.yaml is properly configured
+    validateSopsFiles = false;
 
     # Secrets are decrypted to /run/secrets by default
     # This is a tmpfs, so secrets are never written to disk

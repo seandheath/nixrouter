@@ -12,14 +12,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  # Import interface configuration (generated during install)
-  interfacesFile = /etc/nixos/interfaces.nix;
-  interfaces =
-    if builtins.pathExists interfacesFile
-    then import interfacesFile
-    else { wan = "eth0"; lan = "eth1"; };
-
-  lan = interfaces.lan;
+  lan = config.router.interfaces.lan;
   lanAddress = "10.0.0.1";
   dhcpRangeStart = "10.0.0.100";
   dhcpRangeEnd = "10.0.0.254";
