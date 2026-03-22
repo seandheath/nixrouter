@@ -1,0 +1,16 @@
+# Build artifacts
+result
+result-*
+
+# Local/deployment-specific files
+interfaces.nix
+local/
+
+# Editor backups
+*~
+*.swp
+*.swo
+.*.swp
+
+# direnv
+.direnv/

@@ -1,6 +1,6 @@
 # NixOS Router
 
-Hardened NixOS router configuration with ephemeral root, automatic security updates, and declarative firewall.
+Hardened NixOS router module with ephemeral root, automatic security updates, and declarative firewall.
 
 ## Features
 
@@ -9,54 +9,79 @@ Hardened NixOS router configuration with ephemeral root, automatic security upda
 - **nftables firewall**: Stateful NAT with logging
 - **DHCP/DNS**: dnsmasq serving 10.0.0.0/24 with DNSSEC
 - **Hardened kernel**: sysctl hardening, BBR congestion control, module blacklisting
-- **Secrets management**: sops-nix with age encryption
 - **Fast reboots**: kexec for ~10 second restarts
 
-## Quick Start
+## Usage
 
-### Prerequisites
+Add nixrouter as a flake input and import the module:
 
-- NixOS minimal installer USB
-- Hardware with 2+ network interfaces
-- Target disk (all data will be erased)
-- Your SSH public key
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11-small";
+    disko.url = "github:nix-community/disko";
+    impermanence.url = "github:nix-community/impermanence";
+    nixrouter.url = "github:yourusername/nixrouter";
+  };
 
-### Installation
+  outputs = { self, nixpkgs, disko, impermanence, nixrouter, ... }: {
+    nixosConfigurations.myrouter = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        disko.nixosModules.disko
+        impermanence.nixosModules.impermanence
+        nixrouter.nixosModules.router
 
-1. Boot the NixOS minimal installer
+        ./hardware-configuration.nix
+        ./disko.nix
 
-2. Get the configuration:
-   ```bash
-   nix-shell -p git
-   git clone https://github.com/yourusername/nixrouter.git
-   cd nixrouter
-   ```
+        {
+          # Required options
+          router.adminKeys = [
+            "ssh-ed25519 AAAAC3... your-key"
+          ];
+          router.interfaces.wan = "enp1s0";
+          router.interfaces.lan = "enp2s0";
 
-3. **Add your SSH key** to `users/admin.nix`:
-   ```nix
-   openssh.authorizedKeys.keys = [
-     "ssh-ed25519 AAAAC3... your-key-here"
-   ];
-   ```
+          networking.hostName = "myrouter";
+        }
+      ];
+    };
+  };
+}
+```
 
-4. Run the installer:
-   ```bash
-   sudo ./install.sh
-   ```
+## Required Options
 
-5. Follow the prompts to select:
-   - WAN interface (connects to ISP/modem)
-   - LAN interface (connects to local network)
-   - Target disk
+| Option | Type | Description |
+|--------|------|-------------|
+| `router.adminKeys` | list of strings | SSH public keys for admin user |
+| `router.interfaces.wan` | string | WAN interface name (connects to ISP) |
+| `router.interfaces.lan` | string | LAN interface name (connects to local network) |
 
-6. Reboot and connect cables:
-   - WAN → ISP modem/ONT
-   - LAN → Switch/local network
+## Optional: Secrets Management
 
-7. SSH from a LAN client:
-   ```bash
-   ssh admin@10.0.0.1
-   ```
+For secrets (e.g., Dynamic DNS credentials), add sops-nix:
+
+```nix
+{
+  inputs.sops-nix.url = "github:Mic92/sops-nix";
+
+  outputs = { sops-nix, nixrouter, ... }: {
+    nixosConfigurations.myrouter = nixpkgs.lib.nixosSystem {
+      modules = [
+        sops-nix.nixosModules.sops
+        nixrouter.nixosModules.router
+        ./modules/sops.nix  # Copy from nixrouter/modules/sops.nix
+
+        {
+          sops.defaultSopsFile = ./secrets/secrets.yaml;
+        }
+      ];
+    };
+  };
+}
+```
 
 ## Network Configuration
 
@@ -77,29 +102,27 @@ Hardened NixOS router configuration with ephemeral root, automatic security upda
 - **Forward**: LAN→WAN allowed, WAN→LAN only if established
 - **NAT**: Masquerade on WAN interface
 
-## File Structure
+## Module Structure
 
 ```
 nixrouter/
-├── flake.nix                 # Flake definition with inputs
-├── hosts/router/
-│   ├── default.nix           # Main host config
-│   ├── hardware.nix          # Hardware-specific (generated)
-│   └── disko.nix             # Disk partitioning
+├── flake.nix              # Flake with nixosModules export
 ├── modules/
-│   ├── auto-upgrade.nix      # Automatic updates
-│   ├── scheduled-reboot.nix  # Weekly/monthly reboots
-│   ├── impermanence.nix      # Ephemeral root + persistence
-│   ├── hardening.nix         # Kernel security
-│   ├── firewall.nix          # nftables NAT
-│   ├── dnsmasq.nix           # DHCP/DNS server
-│   ├── ssh.nix               # SSH hardening
-│   ├── sops.nix              # Secrets management
-│   └── ddclient.nix          # Dynamic DNS (stub)
-├── users/admin.nix           # Admin user
-├── secrets/secrets.yaml      # Encrypted secrets
-├── install.sh                # Interactive installer
-└── Makefile                  # Build targets
+│   ├── default.nix        # Main module (imports all, defines options)
+│   ├── auto-upgrade.nix   # Automatic updates
+│   ├── scheduled-reboot.nix
+│   ├── impermanence.nix   # Ephemeral root + persistence
+│   ├── hardening.nix      # Kernel security
+│   ├── firewall.nix       # nftables NAT
+│   ├── dnsmasq.nix        # DHCP/DNS server
+│   ├── ssh.nix            # SSH hardening
+│   ├── sops.nix           # Secrets (optional, not imported by default)
+│   └── ddclient.nix       # Dynamic DNS
+├── hosts/router/          # Example host config
+│   ├── default.nix
+│   ├── hardware.nix
+│   └── disko.nix
+└── users/admin.nix        # Admin user
 ```
 
 ## Persistence
@@ -114,7 +137,7 @@ With ephemeral root, only explicitly listed paths survive reboots:
 | `/nix/persist/var/lib/nixos` | NixOS state |
 | `/nix/persist/var/log` | Logs |
 | `/nix/persist/var/lib/dnsmasq` | DHCP leases |
-| `/nix/persist/var/lib/sops-nix` | Age key |
+| `/nix/persist/var/lib/sops-nix` | Age key (if using sops) |
 
 ## Automatic Updates
 
@@ -127,33 +150,6 @@ Updates run daily at 03:00:
 Additionally:
 - Weekly conditional reboot (Sun 04:00) - only if kernel changed
 - Monthly unconditional reboot (1st of month 04:30)
-
-Check timers: `systemctl list-timers`
-
-## Dynamic DNS
-
-To enable ddclient:
-
-1. Edit `modules/ddclient.nix` - uncomment your provider
-2. Add credentials to `secrets/secrets.yaml`
-3. Encrypt with sops
-4. Rebuild
-
-## Secrets Management
-
-Using sops-nix with age encryption:
-
-```bash
-# Generate age key (done during install)
-age-keygen -o /nix/persist/var/lib/sops-nix/key.txt
-
-# Get public key
-age-keygen -y /nix/persist/var/lib/sops-nix/key.txt
-
-# Create .sops.yaml with your public key
-# Edit secrets
-sops secrets/secrets.yaml
-```
 
 ## Building & Testing
 
@@ -169,45 +165,22 @@ make update
 
 # Format Nix files
 make fmt
+
+# Show module options
+make options
 ```
 
-## Post-Install Checklist
+## Example Personal Repo Structure
 
-- [ ] Verify SSH access from LAN
-- [ ] Test DHCP (client gets IP in 10.0.0.100-254 range)
-- [ ] Test DNS resolution
-- [ ] Test NAT (LAN client can reach internet)
-- [ ] Check firewall logs: `journalctl -k | grep nft`
-- [ ] Verify auto-upgrade timer: `systemctl status nixos-upgrade.timer`
-- [ ] Configure ddclient if using dynamic DNS
-- [ ] Set up sops secrets if needed
-
-## Troubleshooting
-
-### Can't SSH after reboot
-
-Ensure your SSH key is in `users/admin.nix` and rebuild.
-
-### DHCP not working
-
-Check dnsmasq status:
-```bash
-systemctl status dnsmasq
-journalctl -u dnsmasq
 ```
-
-### No internet from LAN
-
-Verify NAT is working:
-```bash
-nft list ruleset
-cat /proc/sys/net/ipv4/ip_forward  # Should be 1
-```
-
-### Check firewall logs
-
-```bash
-journalctl -k | grep "nft-"
+my-router/
+├── flake.nix           # Imports nixrouter, sets options
+├── flake.lock
+├── hardware-configuration.nix
+├── disko.nix           # Disk partitioning for your hardware
+├── secrets/
+│   └── secrets.yaml    # Encrypted secrets (if using sops)
+└── .sops.yaml          # sops configuration
 ```
 
 ## License

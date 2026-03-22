@@ -1,5 +1,29 @@
 # Decision Log
 
+## 2026-03-21 — Make nixrouter Generic
+
+**Decision:** Refactor nixrouter to be a reusable NixOS module exportable via flake.
+
+**Rationale:**
+1. Personal data (SSH keys, secrets) doesn't belong in a public repo
+2. Interface names are deployment-specific
+3. Export as `nixosModules.router` allows use from personal infrastructure repos
+4. Required options (`router.adminKeys`, `router.interfaces.*`) enforce configuration at build time
+
+**Changes:**
+- Removed: `install.sh`, `secrets/secrets.yaml`
+- Added: `modules/default.nix` with option definitions
+- Added: `nixosModules.router` and `nixosModules.default` exports in flake.nix
+- Modified: All modules to use `config.router.interfaces.*` instead of `/etc/nixos/interfaces.nix`
+- Modified: `users/admin.nix` to use `config.router.adminKeys`
+- Made `sops.nix` optional (not imported by default)
+
+**Alternatives considered:**
+- Keep install.sh with prompts — Still requires manual key entry, better in consuming repo
+- Use environment variables — Less declarative, harder to validate
+
+---
+
 ## 2026-03-19 — Initial Implementation
 
 **Decision:** Use nixos-24.11-small channel for the base system.

@@ -6,15 +6,8 @@
 { config, lib, pkgs, inputs, ... }:
 
 let
-  # Import interface configuration (generated during install)
-  interfacesFile = /etc/nixos/interfaces.nix;
-  interfaces =
-    if builtins.pathExists interfacesFile
-    then import interfacesFile
-    else { wan = "eth0"; lan = "eth1"; };
-
-  wan = interfaces.wan;
-  lan = interfaces.lan;
+  wan = config.router.interfaces.wan;
+  lan = config.router.interfaces.lan;
 in
 {
   imports = [

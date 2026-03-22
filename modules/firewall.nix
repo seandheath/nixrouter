@@ -8,23 +8,15 @@
 #   - Forward: Allow LAN→WAN, allow established WAN→LAN
 #   - NAT: Masquerade outbound traffic on WAN interface
 #
-# Interface names are imported from /etc/nixos/interfaces.nix (generated at install).
+# Interface names come from router.interfaces.wan/lan options.
 #
 # Reference: https://nixos.wiki/wiki/Firewall
 
 { config, lib, pkgs, ... }:
 
 let
-  # Import interface configuration (generated during install)
-  # Falls back to placeholder values if file doesn't exist (for initial build)
-  interfacesFile = /etc/nixos/interfaces.nix;
-  interfaces =
-    if builtins.pathExists interfacesFile
-    then import interfacesFile
-    else { wan = "eth0"; lan = "eth1"; };  # Defaults for initial build
-
-  wan = interfaces.wan;
-  lan = interfaces.lan;
+  wan = config.router.interfaces.wan;
+  lan = config.router.interfaces.lan;
   lanNetwork = "10.0.0.0/24";
 in
 {

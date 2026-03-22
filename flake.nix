@@ -1,5 +1,5 @@
 {
-  description = "NixOS router configuration with ephemeral root and automatic updates";
+  description = "NixOS router module with ephemeral root and automatic updates";
 
   inputs = {
     # Using nixos-24.11-small for minimal footprint on router hardware
@@ -13,15 +13,14 @@
 
     # Ephemeral root with persistence
     impermanence.url = "github:nix-community/impermanence";
-
-    # Secrets management with age/sops
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
-  outputs = { self, nixpkgs, disko, impermanence, sops-nix, ... }@inputs: {
+  outputs = { self, nixpkgs, disko, impermanence, ... }@inputs: {
+    # Export the router module for use in other flakes
+    nixosModules.router = import ./modules;
+    nixosModules.default = self.nixosModules.router;
+
+    # Example configuration (requires setting router.* options)
     nixosConfigurations.router = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -29,24 +28,27 @@
         # Flake input modules
         disko.nixosModules.disko
         impermanence.nixosModules.impermanence
-        sops-nix.nixosModules.sops
+
+        # Router module (includes all feature modules)
+        self.nixosModules.router
 
         # Host configuration
         ./hosts/router
 
-        # Feature modules
-        ./modules/impermanence.nix
-        ./modules/auto-upgrade.nix
-        ./modules/scheduled-reboot.nix
-        ./modules/hardening.nix
-        ./modules/firewall.nix
-        ./modules/dnsmasq.nix
-        ./modules/ssh.nix
-        ./modules/sops.nix
-        ./modules/ddclient.nix
-
         # Users
         ./users/admin.nix
+
+        # Example: Set required options for build testing
+        # In real deployment, these come from the consuming flake
+        ({ lib, ... }: {
+          # Placeholder key - override in consuming flake with real keys
+          # Using mkDefault so consuming flake can easily override
+          router.adminKeys = lib.mkDefault [
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPlaceholder-override-in-consuming-flake"
+          ];
+          router.interfaces.wan = lib.mkDefault "eth0";
+          router.interfaces.lan = lib.mkDefault "eth1";
+        })
       ];
     };
 
