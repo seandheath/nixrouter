@@ -1,0 +1,80 @@
+# NixOS Router Makefile
+#
+# Provides common build, test, and maintenance targets.
+
+.PHONY: build test check update clean lint fmt help
+
+# Default target
+help:
+	@echo "NixOS Router - Available targets:"
+	@echo ""
+	@echo "  build   - Build the router configuration"
+	@echo "  test    - Build and run in a VM (if configured)"
+	@echo "  check   - Run nix flake check"
+	@echo "  update  - Update flake inputs (flake.lock)"
+	@echo "  clean   - Remove build artifacts"
+	@echo "  lint    - Check Nix syntax"
+	@echo "  fmt     - Format Nix files"
+	@echo ""
+
+# Build the router configuration
+# This doesn't install, just verifies the configuration builds successfully
+build:
+	nix build .#nixosConfigurations.router.config.system.build.toplevel --show-trace
+
+# Run the configuration in a VM for testing
+# Note: VM testing may not work well for router configs due to networking
+test:
+	@echo "Building VM..."
+	nix build .#nixosConfigurations.router.config.system.build.vm --show-trace
+	@echo "Run ./result/bin/run-router-vm to start the VM"
+	@echo "Note: Networking may not work correctly in VM mode"
+
+# Run flake checks
+check:
+	nix flake check --show-trace
+
+# Update all flake inputs
+update:
+	nix flake update
+
+# Update a specific input
+# Usage: make update-input INPUT=nixpkgs
+update-input:
+	nix flake lock --update-input $(INPUT)
+
+# Remove build artifacts
+clean:
+	rm -rf result
+	rm -rf .direnv
+
+# Check Nix file syntax (basic)
+lint:
+	@echo "Checking Nix syntax..."
+	@find . -name "*.nix" -exec nix-instantiate --parse {} \; > /dev/null
+	@echo "Syntax OK"
+
+# Format Nix files with nixfmt
+fmt:
+	@if command -v nixfmt > /dev/null; then \
+		find . -name "*.nix" -exec nixfmt {} \; ; \
+		echo "Formatted"; \
+	else \
+		echo "nixfmt not found. Install with: nix-env -iA nixpkgs.nixfmt"; \
+	fi
+
+# Show flake info
+info:
+	nix flake show
+	@echo ""
+	nix flake metadata
+
+# Deploy to a remote host (requires SSH access)
+# Usage: make deploy HOST=router.local
+deploy:
+	nixos-rebuild switch --flake .#router --target-host root@$(HOST) --build-host localhost
+
+# Build an ISO for installation
+iso:
+	@echo "ISO generation not yet implemented"
+	@echo "Use the NixOS minimal ISO and run install.sh"
