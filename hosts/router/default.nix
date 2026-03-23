@@ -6,8 +6,9 @@
 { config, lib, pkgs, inputs, ... }:
 
 let
-  wan = config.router.interfaces.wan;
-  lan = config.router.interfaces.lan;
+  interfaces = import ./interfaces.nix;
+  wan = interfaces.wan;
+  lan = interfaces.lan;
 in
 {
   imports = [

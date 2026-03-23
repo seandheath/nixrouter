@@ -2,8 +2,7 @@
 result
 result-*
 
-# Local/deployment-specific files
-interfaces.nix
+# Local/development files
 local/
 
 # Editor backups

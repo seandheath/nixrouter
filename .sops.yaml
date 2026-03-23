@@ -1,0 +1,20 @@
+# sops configuration for nixrouter
+#
+# This file defines which age keys can decrypt secrets.
+# The age private key is stored password-encrypted in secrets/age-key.enc
+# and decrypted during installation to /nix/persist/var/lib/sops-nix/key.txt
+#
+# To encrypt/edit secrets:
+#   1. Ensure SOPS_AGE_KEY_FILE points to the decrypted key
+#   2. Run: sops secrets/secrets.yaml
+#
+# Reference: https://github.com/getsops/sops
+
+keys:
+  - &router age14de6p7ha0932y33z929vrn7lpk74dqxrg3gmz389gul2tf28l4lsryalc9
+
+creation_rules:
+  - path_regex: secrets/secrets\.yaml$
+    key_groups:
+      - age:
+          - *router
