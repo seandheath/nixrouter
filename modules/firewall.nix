@@ -15,8 +15,9 @@
 { config, lib, pkgs, ... }:
 
 let
-  wan = config.router.interfaces.wan;
-  lan = config.router.interfaces.lan;
+  interfaces = import ../hosts/router/interfaces.nix;
+  wan = interfaces.wan;
+  lan = interfaces.lan;
   lanNetwork = "10.0.0.0/24";
 in
 {

@@ -1,5 +1,5 @@
 {
-  description = "NixOS router module with ephemeral root and automatic updates";
+  description = "NixOS router with ephemeral root and automatic updates";
 
   inputs = {
     # Using nixos-24.11-small for minimal footprint on router hardware
@@ -13,14 +13,16 @@
 
     # Ephemeral root with persistence
     impermanence.url = "github:nix-community/impermanence";
+
+    # Secrets management
+    # Pinned to Nov 2024 release for nixos-24.11 compatibility
+    sops-nix = {
+      url = "github:Mic92/sops-nix/472741cf3fee089241ac9ea705bb2b9e0bfa2978";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, disko, impermanence, ... }@inputs: {
-    # Export the router module for use in other flakes
-    nixosModules.router = import ./modules;
-    nixosModules.default = self.nixosModules.router;
-
-    # Example configuration (requires setting router.* options)
+  outputs = { self, nixpkgs, disko, impermanence, sops-nix, ... }@inputs: {
     nixosConfigurations.router = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -28,29 +30,17 @@
         # Flake input modules
         disko.nixosModules.disko
         impermanence.nixosModules.impermanence
+        sops-nix.nixosModules.sops
 
-        # Router module (includes all feature modules)
-        self.nixosModules.router
+        # Router modules
+        ./modules
 
         # Host configuration
         ./hosts/router
 
         # Users
         ./users/admin.nix
-
-        # Example: Set required options for build testing
-        # In real deployment, these come from the consuming flake
-        ({ lib, ... }: {
-          # Placeholder key - override in consuming flake with real keys
-          # Using mkDefault so consuming flake can easily override
-          router.adminKeys = lib.mkDefault [
-            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPlaceholder-override-in-consuming-flake"
-          ];
-          router.interfaces.wan = lib.mkDefault "eth0";
-          router.interfaces.lan = lib.mkDefault "eth1";
-        })
       ];
     };
-
   };
 }

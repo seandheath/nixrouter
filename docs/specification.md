@@ -69,18 +69,28 @@ Internet <---> [ISP Modem] <---> WAN [Router] LAN <---> [Switch] <---> Clients
 - Upstream: Cloudflare + Quad9
 - 10,000 entry DNS cache
 
+### Secrets Management (sops-nix)
+
+- Secrets encrypted with age
+- Password-protected age key stored in repo
+- Decrypted at install time to persistence
+- Secrets available at runtime via `/run/secrets`
+
 ## Configuration Files
 
 | File | Purpose |
 |------|---------|
 | `flake.nix` | Flake definition, inputs |
+| `config.nix` | Static configuration values |
 | `hosts/router/default.nix` | Main host configuration |
 | `hosts/router/hardware.nix` | Hardware-specific (generated) |
 | `hosts/router/disko.nix` | Disk partitioning |
+| `hosts/router/interfaces.nix` | WAN/LAN interface names (generated) |
 | `modules/*.nix` | Feature modules |
 | `users/admin.nix` | Admin user definition |
 | `secrets/secrets.yaml` | Encrypted secrets (sops) |
-| `interfaces.nix` | WAN/LAN interface names (generated) |
+| `secrets/age-key.enc` | Password-encrypted age key |
+| `.sops.yaml` | Sops configuration |
 
 ## Persisted Paths
 
@@ -98,7 +108,7 @@ Internet <---> [ISP Modem] <---> WAN [Router] LAN <---> [Switch] <---> Clients
 
 ## Interfaces
 
-Generated at install time in `interfaces.nix`:
+Generated at install time in `hosts/router/interfaces.nix`:
 
 ```nix
 {
@@ -116,6 +126,18 @@ Generated at install time in `interfaces.nix`:
 | Reboot window | 03:30-05:00 | If upgrade staged |
 | Conditional reboot | Sun 04:00 | If kernel changed |
 | Unconditional reboot | 1st 04:30 | Always |
+
+## Installation Flow
+
+1. Boot NixOS live ISO
+2. Clone repository
+3. Run `./install.sh`
+   - Select WAN interface
+   - Select LAN interface
+   - Select target disk
+   - Enter age key password
+4. Reboot into installed system
+5. SSH to admin@10.0.0.1
 
 ## Out of Scope
 

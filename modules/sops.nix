@@ -24,8 +24,8 @@
     # Age key file location (persisted via impermanence)
     age.keyFile = "/nix/persist/var/lib/sops-nix/key.txt";
 
-    # Set defaultSopsFile in your consuming flake:
-    # sops.defaultSopsFile = ./secrets/secrets.yaml;
+    # Secrets file (encrypted with age)
+    defaultSopsFile = ../secrets/secrets.yaml;
 
     # Validate secrets at build time
     validateSopsFiles = false;

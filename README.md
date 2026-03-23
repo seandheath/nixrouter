@@ -1,6 +1,6 @@
 # NixOS Router
 
-Hardened NixOS router module with ephemeral root, automatic security updates, and declarative firewall.
+Hardened NixOS router configuration with ephemeral root, automatic security updates, and declarative firewall.
 
 ## Features
 
@@ -10,78 +10,73 @@ Hardened NixOS router module with ephemeral root, automatic security updates, an
 - **DHCP/DNS**: dnsmasq serving 10.0.0.0/24 with DNSSEC
 - **Hardened kernel**: sysctl hardening, BBR congestion control, module blacklisting
 - **Fast reboots**: kexec for ~10 second restarts
+- **Secrets management**: sops-nix with age encryption
 
-## Usage
+## Requirements
 
-Add nixrouter as a flake input and import the module:
+- x86_64 system with UEFI boot
+- 2+ network interfaces (WAN + LAN)
+- 2GB+ RAM, 8GB+ storage
+- NixOS live ISO for installation
 
-```nix
-{
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11-small";
-    disko.url = "github:nix-community/disko";
-    impermanence.url = "github:nix-community/impermanence";
-    nixrouter.url = "github:yourusername/nixrouter";
-  };
+## Installation
 
-  outputs = { self, nixpkgs, disko, impermanence, nixrouter, ... }: {
-    nixosConfigurations.myrouter = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        disko.nixosModules.disko
-        impermanence.nixosModules.impermanence
-        nixrouter.nixosModules.router
+### 1. Prepare Secrets
 
-        ./hardware-configuration.nix
-        ./disko.nix
+Generate an age keypair and encrypt it with a password:
 
-        {
-          # Required options
-          router.adminKeys = [
-            "ssh-ed25519 AAAAC3... your-key"
-          ];
-          router.interfaces.wan = "enp1s0";
-          router.interfaces.lan = "enp2s0";
+```bash
+# Generate keypair
+age-keygen
 
-          networking.hostName = "myrouter";
-        }
-      ];
-    };
-  };
-}
+# Save the public key to .sops.yaml (already done, update if regenerating)
+# Encrypt the private key with a password
+echo 'AGE-SECRET-KEY-...' | age -p -a -o secrets/age-key.enc
 ```
 
-## Required Options
+Add your SSH public key to the secrets file:
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `router.adminKeys` | list of strings | SSH public keys for admin user |
-| `router.interfaces.wan` | string | WAN interface name (connects to ISP) |
-| `router.interfaces.lan` | string | LAN interface name (connects to local network) |
+```bash
+# Decrypt age key temporarily
+age -d secrets/age-key.enc > /tmp/age-key.txt
 
-## Optional: Secrets Management
+# Edit secrets (opens $EDITOR)
+SOPS_AGE_KEY_FILE=/tmp/age-key.txt sops secrets/secrets.yaml
 
-For secrets (e.g., Dynamic DNS credentials), add sops-nix:
+# Add your SSH public key:
+# admin-ssh-keys: |
+#   ssh-ed25519 AAAAC3... your-key
 
-```nix
-{
-  inputs.sops-nix.url = "github:Mic92/sops-nix";
-
-  outputs = { sops-nix, nixrouter, ... }: {
-    nixosConfigurations.myrouter = nixpkgs.lib.nixosSystem {
-      modules = [
-        sops-nix.nixosModules.sops
-        nixrouter.nixosModules.router
-        ./modules/sops.nix  # Copy from nixrouter/modules/sops.nix
-
-        {
-          sops.defaultSopsFile = ./secrets/secrets.yaml;
-        }
-      ];
-    };
-  };
-}
+# Clean up
+rm /tmp/age-key.txt
 ```
+
+### 2. Install from Live ISO
+
+Boot the target machine from a NixOS live ISO, then:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/nixrouter.git
+cd nixrouter
+
+# Run the installer
+sudo ./install.sh
+```
+
+The installer will:
+1. Prompt for WAN and LAN interface selection
+2. Write interface configuration to `hosts/router/interfaces.nix`
+3. Prompt for disk selection and partition it
+4. Decrypt the age key (prompts for password)
+5. Install NixOS
+
+### 3. Post-Install
+
+After reboot:
+- Connect WAN interface to modem/ISP
+- Connect LAN interface to switch/network
+- SSH to `admin@10.0.0.1` from the LAN
 
 ## Network Configuration
 
@@ -99,30 +94,38 @@ For secrets (e.g., Dynamic DNS credentials), add sops-nix:
 ### Firewall Rules
 
 - **Input**: SSH/DHCP/DNS from LAN only, all WAN traffic dropped
-- **Forward**: LAN→WAN allowed, WAN→LAN only if established
+- **Forward**: LAN->WAN allowed, WAN->LAN only if established
 - **NAT**: Masquerade on WAN interface
 
-## Module Structure
+## Directory Structure
 
 ```
 nixrouter/
-├── flake.nix              # Flake with nixosModules export
+├── flake.nix                 # Flake definition
+├── config.nix                # Static configuration values
+├── install.sh                # Installation script
+├── hosts/router/
+│   ├── default.nix           # Host configuration
+│   ├── hardware.nix          # Hardware-specific config
+│   ├── disko.nix             # Disk partitioning
+│   └── interfaces.nix        # Network interfaces (generated)
 ├── modules/
-│   ├── default.nix        # Main module (imports all, defines options)
-│   ├── auto-upgrade.nix   # Automatic updates
-│   ├── scheduled-reboot.nix
-│   ├── impermanence.nix   # Ephemeral root + persistence
-│   ├── hardening.nix      # Kernel security
-│   ├── firewall.nix       # nftables NAT
-│   ├── dnsmasq.nix        # DHCP/DNS server
-│   ├── ssh.nix            # SSH hardening
-│   ├── sops.nix           # Secrets (optional, not imported by default)
-│   └── ddclient.nix       # Dynamic DNS
-├── hosts/router/          # Example host config
-│   ├── default.nix
-│   ├── hardware.nix
-│   └── disko.nix
-└── users/admin.nix        # Admin user
+│   ├── default.nix           # Module imports
+│   ├── auto-upgrade.nix      # Automatic updates
+│   ├── scheduled-reboot.nix  # Reboot scheduling
+│   ├── impermanence.nix      # Ephemeral root + persistence
+│   ├── hardening.nix         # Kernel security
+│   ├── firewall.nix          # nftables NAT
+│   ├── dnsmasq.nix           # DHCP/DNS server
+│   ├── ssh.nix               # SSH hardening
+│   ├── sops.nix              # Secrets management
+│   └── ddclient.nix          # Dynamic DNS (optional)
+├── users/
+│   └── admin.nix             # Admin user
+├── secrets/
+│   ├── secrets.yaml          # Encrypted secrets (sops)
+│   └── age-key.enc           # Password-encrypted age key
+└── .sops.yaml                # Sops configuration
 ```
 
 ## Persistence
@@ -137,7 +140,7 @@ With ephemeral root, only explicitly listed paths survive reboots:
 | `/nix/persist/var/lib/nixos` | NixOS state |
 | `/nix/persist/var/log` | Logs |
 | `/nix/persist/var/lib/dnsmasq` | DHCP leases |
-| `/nix/persist/var/lib/sops-nix` | Age key (if using sops) |
+| `/nix/persist/var/lib/sops-nix` | Age key |
 
 ## Automatic Updates
 
@@ -151,7 +154,7 @@ Additionally:
 - Weekly conditional reboot (Sun 04:00) - only if kernel changed
 - Monthly unconditional reboot (1st of month 04:30)
 
-## Building & Testing
+## Development
 
 ```bash
 # Build without installing
@@ -165,22 +168,6 @@ make update
 
 # Format Nix files
 make fmt
-
-# Show module options
-make options
-```
-
-## Example Personal Repo Structure
-
-```
-my-router/
-├── flake.nix           # Imports nixrouter, sets options
-├── flake.lock
-├── hardware-configuration.nix
-├── disko.nix           # Disk partitioning for your hardware
-├── secrets/
-│   └── secrets.yaml    # Encrypted secrets (if using sops)
-└── .sops.yaml          # sops configuration
 ```
 
 ## License

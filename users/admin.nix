@@ -1,22 +1,27 @@
 # Admin user configuration
 #
 # This user has sudo access for system administration.
-# SSH keys are configured via router.adminKeys option.
+# SSH keys are managed via sops-nix (secrets/secrets.yaml).
 #
 # Home directory is persisted via impermanence.
 
 { config, lib, pkgs, ... }:
 
 {
+  # Define sops secret for SSH authorized keys
+  sops.secrets.admin-ssh-keys = {
+    # Readable by sshd to load authorized keys
+    mode = "0444";
+    # Decrypt early so SSH keys are available
+    neededForUsers = true;
+  };
+
   users.users.admin = {
     isNormalUser = true;
     description = "System Administrator";
 
     # Grant sudo access
     extraGroups = [ "wheel" ];
-
-    # SSH public keys from router.adminKeys option
-    openssh.authorizedKeys.keys = config.router.adminKeys;
 
     # No password (SSH key only)
     # If you need a password for console access, use hashedPasswordFile with sops
@@ -25,6 +30,13 @@
     # Default shell
     shell = pkgs.bash;
   };
+
+  # Configure SSH to read admin's authorized keys from sops secret
+  # This avoids build-time evaluation of runtime paths
+  services.openssh.extraConfig = ''
+    Match User admin
+      AuthorizedKeysFile /run/secrets/admin-ssh-keys
+  '';
 
   # Persist admin home directory
   environment.persistence."/nix/persist" = {
@@ -55,4 +67,8 @@
 
   # Ensure wheel group can use sudo
   security.sudo.wheelNeedsPassword = false;
+
+  # SSH keys are provided by sops at runtime, so NixOS can't verify them at build time
+  # This silences the "no password or SSH key" assertion
+  users.allowNoPasswordLogin = true;
 }

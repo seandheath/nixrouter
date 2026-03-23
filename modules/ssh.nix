@@ -11,13 +11,6 @@
 { config, lib, pkgs, ... }:
 
 let
-  # Import interface configuration
-  interfacesFile = /etc/nixos/interfaces.nix;
-  interfaces =
-    if builtins.pathExists interfacesFile
-    then import interfacesFile
-    else { wan = "eth0"; lan = "eth1"; };
-
   lanAddress = "10.0.0.1";
 in
 {

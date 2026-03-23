@@ -1,5 +1,34 @@
 # Decision Log
 
+## 2026-03-23 — Convert Back to Specific Configuration
+
+**Decision:** Convert nixrouter from a reusable NixOS module back to a specific, deployable router configuration with sops-nix secrets.
+
+**Rationale:**
+1. Single deployment target simplifies maintenance
+2. Secrets management with sops-nix provides better security than passing keys via flake options
+3. Interface selection at install time via `install.sh` is more flexible
+4. No abstraction overhead — direct configuration is easier to understand and modify
+5. Password-encrypted age key allows storing secrets in the repo safely
+
+**Changes:**
+- Removed: `nixosModules.router` and `nixosModules.default` exports
+- Removed: `options.router.*` option definitions
+- Added: sops-nix input and module import
+- Added: `config.nix` for static configuration values
+- Added: `hosts/router/interfaces.nix` (generated at install time)
+- Added: `secrets/secrets.yaml` (encrypted with sops)
+- Added: `secrets/age-key.enc` (password-encrypted age private key)
+- Added: `install.sh` for interactive installation
+- Modified: All modules to import interfaces from `hosts/router/interfaces.nix`
+- Modified: `users/admin.nix` to use sops secret for SSH keys
+
+**Alternatives considered:**
+- Keep as reusable module — Adds complexity for single-deployment use case
+- Use agenix instead of sops-nix — sops-nix has better multiline secret support
+
+---
+
 ## 2026-03-21 — Make nixrouter Generic
 
 **Decision:** Refactor nixrouter to be a reusable NixOS module exportable via flake.

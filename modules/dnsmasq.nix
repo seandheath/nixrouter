@@ -12,7 +12,8 @@
 { config, lib, pkgs, ... }:
 
 let
-  lan = config.router.interfaces.lan;
+  interfaces = import ../hosts/router/interfaces.nix;
+  lan = interfaces.lan;
   lanAddress = "10.0.0.1";
   dhcpRangeStart = "10.0.0.100";
   dhcpRangeEnd = "10.0.0.254";
