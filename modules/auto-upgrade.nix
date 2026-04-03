@@ -80,15 +80,26 @@ in
     options = "--delete-older-than 30d";
   };
 
-  # Optimize nix store periodically
-  nix.optimise = {
-    automatic = true;
-    dates = [ "weekly" ];
-  };
-
   # Limit number of boot configurations to save /boot space
   boot.loader.systemd-boot.configurationLimit = 10;
 
-  # Enable flakes (required for flake-based upgrades)
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  # Nix build and store settings
+  nix.settings = {
+    # Enable flakes (required for flake-based upgrades)
+    experimental-features = [ "nix-command" "flakes" ];
+
+    # Use all CPU cores per build derivation
+    cores = 0;
+
+    # Build multiple derivations in parallel (auto = number of CPUs)
+    max-jobs = "auto";
+
+    # Keep derivations and outputs to avoid re-downloading after GC
+    # Trades disk space for faster rebuilds
+    keep-derivations = true;
+    keep-outputs = true;
+
+    # Deduplicate store paths on write (replaces periodic nix.optimise)
+    auto-optimise-store = true;
+  };
 }
