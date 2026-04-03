@@ -58,7 +58,8 @@ ensure_deps() {
     if [[ ${#missing[@]} -gt 0 ]]; then
         info "Fetching missing tools via nix: ${missing[*]}"
         # Re-exec the script inside nix shell with the missing packages
-        exec nix --experimental-features 'nix-command flakes' shell "${nixpkgs[@]}" -- "$0" "$@"
+        # Use absolute path for $0 so nix doesn't interpret it as a flake ref
+        exec nix --experimental-features 'nix-command flakes' shell "${nixpkgs[@]}" --command "$(readlink -f "$0")" "$@"
     fi
 }
 
