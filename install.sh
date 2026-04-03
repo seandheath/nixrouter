@@ -38,6 +38,30 @@ check_root() {
 # Get script directory (where nixrouter repo is)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Ensure required tools are available, fetching via nix if missing
+ensure_deps() {
+    local missing=()
+    local nixpkgs=()
+
+    # command -> nixpkgs attribute
+    declare -A dep_map=(
+        [age]=age
+    )
+
+    for cmd in "${!dep_map[@]}"; do
+        if ! command -v "$cmd" &>/dev/null; then
+            missing+=("$cmd")
+            nixpkgs+=("nixpkgs#${dep_map[$cmd]}")
+        fi
+    done
+
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        info "Fetching missing tools via nix: ${missing[*]}"
+        # Re-exec the script inside nix shell with the missing packages
+        exec nix --experimental-features 'nix-command flakes' shell "${nixpkgs[@]}" -- "$0" "$@"
+    fi
+}
+
 # List available network interfaces (excluding lo and virtual)
 list_interfaces() {
     ip -o link show | awk -F': ' '{print $2}' | grep -v '^lo$' | grep -v '^vir' | grep -v '@'
@@ -162,7 +186,7 @@ decrypt_age_key() {
     read -rsp "Enter passphrase for age key: " passphrase < /dev/tty
     echo "" >&2
 
-    if ! echo "$passphrase" | nix --experimental-features 'nix-command flakes' shell nixpkgs#age -c age -d "$encrypted" > "$target"; then
+    if ! echo "$passphrase" | age -d "$encrypted" > "$target"; then
         error "Failed to decrypt age key"
         exit 1
     fi
@@ -218,6 +242,7 @@ main() {
     echo ""
 
     check_root
+    ensure_deps "$@"
 
     # Check we're on NixOS live ISO
     if [[ ! -d /mnt ]] || mountpoint -q /mnt 2>/dev/null; then
