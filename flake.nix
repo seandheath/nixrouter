@@ -11,7 +11,10 @@
     };
 
     # Ephemeral root with persistence
-    impermanence.url = "github:nix-community/impermanence";
+    impermanence = {
+      url = "github:nix-community/impermanence";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # Secrets management
     sops-nix = {
