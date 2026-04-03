@@ -64,6 +64,12 @@
     }
   ];
 
+  # Shell aliases for system management
+  environment.interactiveShellInit = ''
+    alias nrs='cd /nix/persist/etc/nixos && git pull && sudo nixos-rebuild switch --flake .#router'
+    alias nrb='cd /nix/persist/etc/nixos && git pull && sudo nixos-rebuild boot --flake .#router'
+  '';
+
   # Ensure wheel group can use sudo
   security.sudo.wheelNeedsPassword = false;
 
