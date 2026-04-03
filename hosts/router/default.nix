@@ -106,5 +106,5 @@ in
   };
 
   # NixOS state version (do not change after install)
-  system.stateVersion = "24.11";
+  system.stateVersion = "25.11";
 }

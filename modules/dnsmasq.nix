@@ -141,7 +141,7 @@ in
       Group = "dnsmasq";
       # Hardening
       ProtectHome = lib.mkForce true;
-      ProtectSystem = lib.mkForce "strict";
+      ProtectSystem = lib.mkForce "full";
       ReadWritePaths = [ "/var/lib/dnsmasq" ];
       PrivateTmp = lib.mkForce true;
       NoNewPrivileges = lib.mkForce true;
