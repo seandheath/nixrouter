@@ -35,6 +35,9 @@ in
   # Use latest LTS kernel for stability + security patches
   boot.kernelPackages = pkgs.linuxPackages_6_6;
 
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+
   # Network interface configuration
   networking = {
     # Use networkd for interface management
