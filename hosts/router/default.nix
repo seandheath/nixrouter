@@ -39,29 +39,20 @@ in
   nixpkgs.config.allowUnfree = true;
 
   # Network interface configuration
+  # All interface config uses native systemd-networkd (systemd.network.networks)
+  # VLANs, bridge, and LAN are configured in modules/vlans.nix
   networking = {
-    # Use networkd for interface management
     useNetworkd = true;
-
-    # Disable DHCP globally (we configure per-interface)
     useDHCP = false;
-
-    # WAN interface: DHCP from upstream provider
-    interfaces.${wan} = {
-      useDHCP = true;
-    };
-
-    # LAN interface: Static IP (gateway for local network)
-    interfaces.${lan} = {
-      ipv4.addresses = [{
-        address = "10.0.0.1";
-        prefixLength = 24;
-      }];
-    };
   };
 
-  # Enable systemd-networkd
-  systemd.network.enable = true;
+  # WAN interface: DHCP from upstream ISP
+  systemd.network.networks."10-wan" = {
+    matchConfig.Name = wan;
+    networkConfig.DHCP = "ipv4";
+    dhcpV4Config.UseDNS = false;  # Router runs its own DNS via dnsmasq
+    linkConfig.RequiredForOnline = "routable";
+  };
 
   # Use router's own dnsmasq for DNS resolution
   networking.nameservers = [ "10.0.0.1" ];
