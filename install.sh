@@ -162,7 +162,7 @@ decrypt_age_key() {
     read -rsp "Enter passphrase for age key: " passphrase < /dev/tty
     echo "" >&2
 
-    if ! echo "$passphrase" | age -d "$encrypted" > "$target"; then
+    if ! echo "$passphrase" | nix --experimental-features 'nix-command flakes' shell nixpkgs#age -c age -d "$encrypted" > "$target"; then
         error "Failed to decrypt age key"
         exit 1
     fi
