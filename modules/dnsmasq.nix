@@ -8,7 +8,7 @@
 # Network configuration:
 #   - Main LAN (br-lan): 10.0.0.0/24, DNS with base blocklist
 #   - Guest VLAN (eth1.10): 10.10.0.0/24, DNS without filtering
-#   - Kids VLAN (eth1.20): 10.20.0.0/24, DNS with extended blocklist
+#   - Kids VLAN: handled by separate dnsmasq-kids instance (dns-blocklist.nix)
 #   - IoT VLAN (eth1.30): 10.30.0.0/24, DNS without filtering
 #
 # DHCP leases are persisted to /nix/persist/var/lib/dnsmasq
@@ -26,7 +26,6 @@ let
 
   # VLAN interface names (on trunk port)
   guestIf = "${lan}.${toString vlans.guest.id}";
-  kidsIf = "${lan}.${toString vlans.kids.id}";
   iotIf = "${lan}.${toString vlans.iot.id}";
 
   # Lease time for all networks
@@ -46,7 +45,6 @@ in
       interface = [
         bridge
         guestIf
-        kidsIf
         iotIf
       ];
       bind-interfaces = true;
@@ -58,8 +56,6 @@ in
         "${cfg.lan.dhcpStart},${cfg.lan.dhcpEnd},${leaseTime}"
         # Guest VLAN
         "${vlans.guest.dhcpStart},${vlans.guest.dhcpEnd},${leaseTime}"
-        # Kids VLAN
-        "${vlans.kids.dhcpStart},${vlans.kids.dhcpEnd},${leaseTime}"
         # IoT VLAN
         "${vlans.iot.dhcpStart},${vlans.iot.dhcpEnd},${leaseTime}"
       ];
@@ -74,10 +70,6 @@ in
         # Guest VLAN
         "tag:${guestIf},option:router,${vlans.guest.address}"
         "tag:${guestIf},option:dns-server,${vlans.guest.address}"
-
-        # Kids VLAN
-        "tag:${kidsIf},option:router,${vlans.kids.address}"
-        "tag:${kidsIf},option:dns-server,${vlans.kids.address}"
 
         # IoT VLAN
         "tag:${iotIf},option:router,${vlans.iot.address}"
@@ -139,8 +131,8 @@ in
 
   # Wait for bridge and VLAN interfaces before starting dnsmasq
   systemd.services.dnsmasq = {
-    after = [ "sys-subsystem-net-devices-${bridge}.device" "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
-    wants = [ "sys-subsystem-net-devices-${bridge}.device" "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
+    after = [ "sys-subsystem-net-devices-${bridge}.device" "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
+    wants = [ "sys-subsystem-net-devices-${bridge}.device" "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
   };
 
   # Create lease file directory with correct permissions

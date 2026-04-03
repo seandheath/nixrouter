@@ -77,9 +77,15 @@ in
     interface=${kidsIf}
     bind-interfaces
 
-    # Don't provide DHCP (main dnsmasq handles that)
-    # This instance is DNS-only
+    # DNS on standard port
     port=53
+
+    # DHCP for Kids VLAN
+    dhcp-range=${vlans.kids.dhcpStart},${vlans.kids.dhcpEnd},${cfg.lan.leaseTime}
+    dhcp-option=option:router,${vlans.kids.address}
+    dhcp-option=option:dns-server,${vlans.kids.address}
+    dhcp-leasefile=/var/lib/dnsmasq/dnsmasq-kids.leases
+    dhcp-authoritative
 
     # Listen on the Kids VLAN gateway address
     listen-address=${vlans.kids.address}
@@ -183,6 +189,7 @@ in
   systemd.tmpfiles.rules = [
     "f ${baseBlocklist} 0644 dnsmasq dnsmasq -"
     "f ${kidsBlocklist} 0644 dnsmasq dnsmasq -"
+    "f /var/lib/dnsmasq/dnsmasq-kids.leases 0644 dnsmasq dnsmasq -"
   ];
 
   # Run blocklist update on first boot
