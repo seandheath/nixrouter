@@ -181,13 +181,8 @@ decrypt_age_key() {
 
     mkdir -p "$(dirname "$target")"
 
-    # Read passphrase explicitly from /dev/tty since stdin may be
-    # exhausted by earlier commands (e.g. nix run disko)
-    local passphrase
-    read -rsp "Enter passphrase for age key: " passphrase < /dev/tty
-    echo "" >&2
-
-    if ! echo "$passphrase" | age -d "$encrypted" > "$target"; then
+    # Let age prompt for the passphrase directly via /dev/tty
+    if ! age -d -o "$target" "$encrypted" < /dev/null; then
         error "Failed to decrypt age key"
         exit 1
     fi
