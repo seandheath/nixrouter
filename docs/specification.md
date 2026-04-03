@@ -105,6 +105,7 @@ Internet <---> [ISP Modem] <---> WAN [Router] LAN <---> [Switch] <---> Clients
 | `/var/lib/ddclient` | DDNS state |
 | `/var/lib/sops-nix` | Age key |
 | `/var/lib/systemd/timers` | Timer state |
+| `/root/.cache/nix` | Nix evaluation cache |
 
 ## Interfaces
 

@@ -47,6 +47,9 @@
 
       # sops-nix age key location
       "/var/lib/sops-nix"
+
+      # Nix evaluation/download cache for root user
+      "/root/.cache/nix"
     ];
 
     files = [
@@ -79,6 +82,7 @@
     "d /nix/persist/var/lib/dnsmasq 0755 dnsmasq dnsmasq -"
     "d /nix/persist/var/lib/ddclient 0700 ddclient ddclient -"
     "d /nix/persist/var/lib/sops-nix 0700 root root -"
+    "d /nix/persist/root/.cache/nix 0700 root root -"
     "d /nix/persist/etc/ssh 0755 root root -"
   ];
 

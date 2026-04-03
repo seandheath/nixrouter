@@ -183,6 +183,7 @@ With ephemeral root, only explicitly listed paths survive reboots:
 | `/nix/persist/var/lib/ddclient` | DDNS state |
 | `/nix/persist/var/lib/sops-nix` | Age decryption key |
 | `/nix/persist/var/lib/systemd/timers` | Timer state |
+| `/nix/persist/root/.cache/nix` | Nix evaluation/download cache |
 
 ## Automatic Updates
 
