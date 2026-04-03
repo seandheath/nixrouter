@@ -64,5 +64,5 @@
   # System settings
   hostname = "router";
   timezone = "UTC";
-  stateVersion = "24.11";
+  stateVersion = "25.11";
 }

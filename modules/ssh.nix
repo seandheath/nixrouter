@@ -19,9 +19,9 @@ in
 
     settings = {
       # --- Authentication ---
-      # Disable password authentication (keys only)
-      PasswordAuthentication = false;
-      KbdInteractiveAuthentication = false;
+      # Allow password authentication (admin password managed via sops)
+      PasswordAuthentication = true;
+      KbdInteractiveAuthentication = true;
 
       # Disable root login entirely
       PermitRootLogin = "no";

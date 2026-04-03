@@ -9,11 +9,10 @@
 
 {
   # Define sops secret for SSH authorized keys
+  # No neededForUsers — SSH keys don't need early decryption,
+  # sshd starts after sops activation. Path: /run/secrets/admin-ssh-keys
   sops.secrets.admin-ssh-keys = {
-    # Readable by sshd to load authorized keys
     mode = "0444";
-    # Decrypt early so SSH keys are available
-    neededForUsers = true;
   };
 
   users.users.admin = {
@@ -31,10 +30,10 @@
   };
 
   # Configure SSH to read admin's authorized keys from sops secret
-  # This avoids build-time evaluation of runtime paths
+  # Uses config.sops.secrets path which resolves to /run/secrets/admin-ssh-keys
   services.openssh.extraConfig = ''
     Match User admin
-      AuthorizedKeysFile /run/secrets/admin-ssh-keys /run/secrets-for-users.d/1/admin-ssh-keys
+      AuthorizedKeysFile ${config.sops.secrets.admin-ssh-keys.path}
   '';
 
   # Persist admin home directory

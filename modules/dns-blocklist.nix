@@ -62,12 +62,7 @@ in
       Restart = "on-failure";
       RestartSec = "5s";
 
-      # Hardening
-      ProtectHome = true;
-      ProtectSystem = "full";
-      ReadWritePaths = [ "/var/lib/dnsmasq" ];
-      PrivateTmp = true;
-      NoNewPrivileges = true;
+      # Capabilities needed for port 53 binding
       AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
       CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
     };

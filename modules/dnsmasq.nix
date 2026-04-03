@@ -36,6 +36,10 @@ in
   services.dnsmasq = {
     enable = true;
 
+    # Don't update /etc/resolv.conf — this router IS the resolver.
+    # Prevents preStart from writing to /etc/ which fails with impermanence.
+    resolveLocalQueries = false;
+
     settings = {
       # --- Interface Binding ---
       # Listen on LAN and all VLAN interfaces (not WAN!)
@@ -133,23 +137,8 @@ in
     };
   };
 
-  # Ensure dnsmasq can write to its state directory
+  # Wait for bridge and VLAN interfaces before starting dnsmasq
   systemd.services.dnsmasq = {
-    serviceConfig = {
-      # Run as dnsmasq user
-      User = "dnsmasq";
-      Group = "dnsmasq";
-      # Hardening
-      ProtectHome = lib.mkForce true;
-      ProtectSystem = lib.mkForce "full";
-      ReadWritePaths = [ "/var/lib/dnsmasq" ];
-      PrivateTmp = lib.mkForce true;
-      NoNewPrivileges = lib.mkForce true;
-      # Need to bind to port 53 and 67
-      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
-      CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
-    };
-    # Wait for bridge and VLAN interfaces to be ready
     after = [ "sys-subsystem-net-devices-${bridge}.device" "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
     wants = [ "sys-subsystem-net-devices-${bridge}.device" "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
   };
