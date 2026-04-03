@@ -23,9 +23,8 @@
     # Grant sudo access
     extraGroups = [ "wheel" ];
 
-    # No password (SSH key only)
-    # If you need a password for console access, use hashedPasswordFile with sops
-    hashedPassword = null;
+    # Password for console access (hash stored in sops)
+    hashedPasswordFile = config.sops.secrets.admin-password.path;
 
     # Default shell
     shell = pkgs.bash;

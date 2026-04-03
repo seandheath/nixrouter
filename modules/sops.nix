@@ -33,12 +33,10 @@
     # Secrets are decrypted to /run/secrets by default
     # This is a tmpfs, so secrets are never written to disk
 
-    # Example secret definitions:
-    # secrets."ddclient/cloudflare-token" = {
-    #   owner = "ddclient";
-    #   group = "ddclient";
-    #   mode = "0400";
-    # };
+    secrets.admin-password = {
+      # Decrypt early so password hash is available during user activation
+      neededForUsers = true;
+    };
   };
 
   # Ensure sops-nix package is available
