@@ -64,7 +64,7 @@ in
 
       # Hardening
       ProtectHome = true;
-      ProtectSystem = "strict";
+      ProtectSystem = "full";
       ReadWritePaths = [ "/var/lib/dnsmasq" ];
       PrivateTmp = true;
       NoNewPrivileges = true;
