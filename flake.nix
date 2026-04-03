@@ -3,7 +3,7 @@
 
   inputs = {
     # Using nixos-25.11-small for minimal footprint on router hardware
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
+    nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/nixos-25.11-small.tar.gz";
 
     # Declarative disk partitioning
     disko = {
