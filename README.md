@@ -83,7 +83,7 @@ age-keygen
 echo 'AGE-SECRET-KEY-...' | age -p -a -o secrets/age-key.enc
 ```
 
-Add your SSH public key to the secrets file:
+Add your SSH public key and admin password hash to the secrets file:
 
 ```bash
 # Decrypt age key temporarily
@@ -92,9 +92,12 @@ age -d secrets/age-key.enc > /tmp/age-key.txt
 # Edit secrets (opens $EDITOR)
 SOPS_AGE_KEY_FILE=/tmp/age-key.txt sops secrets/secrets.yaml
 
-# Add your SSH public key:
+# Add your SSH public key and password hash:
 # admin-ssh-keys: |
 #   ssh-ed25519 AAAAC3... your-key
+# admin-password: "$6$..."
+#
+# Generate a password hash with: mkpasswd -m sha-512
 
 # Clean up
 rm /tmp/age-key.txt
@@ -114,11 +117,12 @@ sudo ./install.sh
 ```
 
 The installer will:
-1. Prompt for WAN, trunk (AP), and wired LAN interface selection
-2. Write interface configuration to `hosts/router/interfaces.nix`
-3. Prompt for disk selection and partition it
-4. Decrypt the age key (prompts for password)
-5. Install NixOS
+1. Fetch any missing tools (e.g. `age`) via `nix shell` automatically
+2. Prompt for WAN, trunk (AP), and wired LAN interface selection
+3. Write interface configuration to `hosts/router/interfaces.nix`
+4. Prompt for disk selection and partition it
+5. Decrypt the age key (prompts for passphrase)
+6. Install NixOS
 
 ### 3. Post-Install
 
