@@ -1,12 +1,12 @@
 # dnsmasq configuration for DHCP and DNS
 #
 # Provides:
-#   - DHCP server on br-lan and VLAN interfaces
+#   - DHCP server on brLan and VLAN interfaces
 #   - Caching DNS resolver with optional blocklist filtering
 #   - Router advertisement for each network
 #
 # Network configuration:
-#   - Main LAN (br-lan): 10.0.0.0/24, DNS with base blocklist
+#   - Main LAN (brLan): 10.0.0.0/24, DNS with base blocklist
 #   - Guest VLAN (eth1.10): 10.10.0.0/24, DNS without filtering
 #   - Kids VLAN: handled by separate dnsmasq-kids instance (dns-blocklist.nix)
 #   - IoT VLAN (eth1.30): 10.30.0.0/24, DNS without filtering

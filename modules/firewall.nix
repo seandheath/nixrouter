@@ -1,7 +1,7 @@
 # Firewall and NAT configuration
 #
 # Architecture:
-#   WAN (external) <---> [Router] <---> br-lan (10.0.0.0/24)
+#   WAN (external) <---> [Router] <---> brLan (10.0.0.0/24)
 #                                  |       ├── eth1 (trunk to AP)
 #                                  |       └── eth2 (unmanaged switch)
 #                                  +---> Guest VLAN (10.10.0.0/24) - isolated
@@ -9,13 +9,13 @@
 #                                  +---> IoT VLAN (10.30.0.0/24) - logged
 #
 # Policy:
-#   - Input: Allow SSH/DHCP/DNS from br-lan only, drop from WAN and VLANs
-#   - Forward: Allow br-lan→WAN, VLAN→WAN, block inter-VLAN and VLAN→LAN
+#   - Input: Allow SSH/DHCP/DNS from brLan only, drop from WAN and VLANs
+#   - Forward: Allow brLan→WAN, VLAN→WAN, block inter-VLAN and VLAN→LAN
 #   - NAT: Masquerade outbound traffic on WAN interface
 #
 # Security:
 #   - VLANs cannot reach each other or the main LAN (10.0.0.0/8 blocked)
-#   - VLANs cannot SSH to router (management from br-lan only)
+#   - VLANs cannot SSH to router (management from brLan only)
 #   - IoT connections are logged for monitoring
 #
 # Reference: https://nixos.wiki/wiki/Firewall

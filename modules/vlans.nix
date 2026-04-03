@@ -1,13 +1,13 @@
 # VLAN and bridge interface configuration
 #
-# Creates a bridge (br-lan) for the main LAN, bridging the trunk port and
+# Creates a bridge (brLan) for the main LAN, bridging the trunk port and
 # the wired LAN NIC. VLAN sub-interfaces are created on the trunk port
 # directly (not on the bridge) so tagged traffic stays isolated.
 #
 # Network topology:
-#   br-lan (10.0.0.1/24)
+#   brLan (10.0.0.1/24)
 #     ├── eth1 (trunk) <-> AP
-#     │     ├── untagged -> br-lan
+#     │     ├── untagged -> brLan
 #     │     ├── eth1.10 (Guest)
 #     │     ├── eth1.20 (Kids)
 #     │     └── eth1.30 (IoT)
@@ -31,7 +31,7 @@ in
 
   systemd.network.netdevs = {
     # Bridge for the main LAN
-    "10-br-lan" = {
+    "10-brLan" = {
       netdevConfig = {
         Name = bridge;
         Kind = "bridge";
@@ -74,7 +74,7 @@ in
 
   systemd.network.networks = {
     # Trunk port (AP) - bridge member, carries tagged VLANs
-    # Tagged frames go to VLAN sub-interfaces; untagged frames go to br-lan
+    # Tagged frames go to VLAN sub-interfaces; untagged frames go to brLan
     "20-lan-trunk" = {
       matchConfig = {
         Name = lan;
@@ -106,7 +106,7 @@ in
     };
 
     # Bridge interface - main LAN gateway
-    "20-br-lan" = {
+    "20-brLan" = {
       matchConfig = {
         Name = bridge;
       };

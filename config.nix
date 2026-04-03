@@ -6,7 +6,7 @@
 
 {
   # Bridge name for the main LAN (bridges trunk + wired LAN NICs)
-  bridgeName = "br-lan";
+  bridgeName = "brLan";
 
   # LAN network configuration (native VLAN / untagged)
   lan = {
@@ -20,7 +20,7 @@
 
   # VLAN network configuration
   # VLANs are tagged on the trunk interface and delivered via 802.1Q to the AP.
-  # Untagged traffic from the trunk and wired LAN NIC are bridged into br-lan.
+  # Untagged traffic from the trunk and wired LAN NIC are bridged into brLan.
   vlans = {
     # Guest network - internet access only, isolated from all other networks
     guest = {

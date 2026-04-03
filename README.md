@@ -26,9 +26,9 @@ Hardened NixOS router configuration with VLAN segmentation, ephemeral root, auto
 ## Network Topology
 
 ```
-Internet <---> [ISP Modem] <---> WAN [Router] br-lan (10.0.0.1/24)
+Internet <---> [ISP Modem] <---> WAN [Router] brLan (10.0.0.1/24)
                                  eth0           ├── eth1 (trunk) <---> [AP]
-                              (DHCP)            │     ├── untagged -> br-lan
+                              (DHCP)            │     ├── untagged -> brLan
                                                 │     ├── eth1.10 (Guest)
                                                 │     ├── eth1.20 (Kids)
                                                 │     └── eth1.30 (IoT)

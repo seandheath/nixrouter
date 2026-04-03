@@ -11,7 +11,9 @@
 { config, lib, pkgs, ... }:
 
 let
-  lanAddress = "10.0.0.1";
+  cfg = import ../config.nix;
+  lanAddress = cfg.lan.address;
+  bridgeDevice = "sys-subsystem-net-devices-${cfg.bridgeName}.device";
 in
 {
   services.openssh = {
@@ -95,6 +97,12 @@ in
         bits = 4096;
       }
     ];
+  };
+
+  # Wait for the bridge interface before binding to LAN address
+  systemd.services.sshd = {
+    after = [ bridgeDevice ];
+    wants = [ bridgeDevice ];
   };
 
   # Banner shown before login

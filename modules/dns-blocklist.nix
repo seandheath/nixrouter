@@ -87,9 +87,6 @@ in
     dhcp-leasefile=/var/lib/dnsmasq/dnsmasq-kids.leases
     dhcp-authoritative
 
-    # Listen on the Kids VLAN gateway address
-    listen-address=${vlans.kids.address}
-
     # Upstream DNS (same as main)
     no-resolv
     ${lib.concatMapStringsSep "\n" (s: "server=${s}") cfg.upstreamDns}
