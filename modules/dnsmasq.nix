@@ -1,12 +1,12 @@
 # dnsmasq configuration for DHCP and DNS
 #
 # Provides:
-#   - DHCP server on LAN and VLAN interfaces
+#   - DHCP server on br-lan and VLAN interfaces
 #   - Caching DNS resolver with optional blocklist filtering
 #   - Router advertisement for each network
 #
 # Network configuration:
-#   - Main LAN (eth1): 10.0.0.0/24, DNS with base blocklist
+#   - Main LAN (br-lan): 10.0.0.0/24, DNS with base blocklist
 #   - Guest VLAN (eth1.10): 10.10.0.0/24, DNS without filtering
 #   - Kids VLAN (eth1.20): 10.20.0.0/24, DNS with extended blocklist
 #   - IoT VLAN (eth1.30): 10.30.0.0/24, DNS without filtering
@@ -21,9 +21,10 @@ let
   cfg = import ../config.nix;
   interfaces = import ../hosts/router/interfaces.nix;
   lan = interfaces.lan;
+  bridge = cfg.bridgeName;
   vlans = cfg.vlans;
 
-  # VLAN interface names
+  # VLAN interface names (on trunk port)
   guestIf = "${lan}.${toString vlans.guest.id}";
   kidsIf = "${lan}.${toString vlans.kids.id}";
   iotIf = "${lan}.${toString vlans.iot.id}";
@@ -39,7 +40,7 @@ in
       # --- Interface Binding ---
       # Listen on LAN and all VLAN interfaces (not WAN!)
       interface = [
-        lan
+        bridge
         guestIf
         kidsIf
         iotIf
@@ -62,9 +63,9 @@ in
       # Per-interface router and DNS server options
       # dnsmasq auto-detects the correct network based on interface
       dhcp-option = [
-        # Main LAN
-        "tag:${lan},option:router,${cfg.lan.address}"
-        "tag:${lan},option:dns-server,${cfg.lan.address}"
+        # Main LAN (bridge)
+        "tag:${bridge},option:router,${cfg.lan.address}"
+        "tag:${bridge},option:dns-server,${cfg.lan.address}"
 
         # Guest VLAN
         "tag:${guestIf},option:router,${vlans.guest.address}"
@@ -148,9 +149,9 @@ in
       AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
       CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
     };
-    # Wait for VLAN interfaces to be ready
-    after = [ "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
-    wants = [ "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
+    # Wait for bridge and VLAN interfaces to be ready
+    after = [ "sys-subsystem-net-devices-${bridge}.device" "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
+    wants = [ "sys-subsystem-net-devices-${bridge}.device" "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
   };
 
   # Create lease file directory with correct permissions

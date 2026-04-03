@@ -1,13 +1,17 @@
-# VLAN interface configuration
+# VLAN and bridge interface configuration
 #
-# Creates VLAN interfaces on the LAN trunk port using systemd-networkd.
-# VLANs are tagged 802.1Q frames delivered via eth1 (trunk port).
+# Creates a bridge (br-lan) for the main LAN, bridging the trunk port and
+# the wired LAN NIC. VLAN sub-interfaces are created on the trunk port
+# directly (not on the bridge) so tagged traffic stays isolated.
 #
 # Network topology:
-#   eth1 (trunk) -> eth1.10 (Guest), eth1.20 (Kids), eth1.30 (IoT)
-#
-# The parent interface (eth1) carries untagged traffic for the main LAN
-# and tagged traffic for VLANs 10, 20, 30.
+#   br-lan (10.0.0.1/24)
+#     ├── eth1 (trunk) <-> AP
+#     │     ├── untagged -> br-lan
+#     │     ├── eth1.10 (Guest)
+#     │     ├── eth1.20 (Kids)
+#     │     └── eth1.30 (IoT)
+#     └── eth2 <-> Unmanaged switch
 #
 # Reference: https://wiki.nixos.org/wiki/Systemd-networkd
 
@@ -16,16 +20,24 @@
 let
   cfg = import ../config.nix;
   interfaces = import ../hosts/router/interfaces.nix;
-  lan = interfaces.lan;
+  lan = interfaces.lan;        # Trunk port (AP)
+  wiredLan = interfaces.wiredLan; # Wired LAN (unmanaged switch)
+  bridge = cfg.bridgeName;
   vlans = cfg.vlans;
 in
 {
-  # Enable systemd-networkd for VLAN interface management
+  # Enable systemd-networkd for bridge and VLAN management
   systemd.network.enable = true;
 
-  # VLAN netdev definitions
-  # These create the virtual VLAN interfaces
   systemd.network.netdevs = {
+    # Bridge for the main LAN
+    "10-br-lan" = {
+      netdevConfig = {
+        Name = bridge;
+        Kind = "bridge";
+      };
+    };
+
     # Guest VLAN (10) - isolated internet access
     "10-vlan-guest" = {
       netdevConfig = {
@@ -60,28 +72,53 @@ in
     };
   };
 
-  # Network configuration for parent interface (trunk)
-  # Links VLANs to the parent interface
   systemd.network.networks = {
-    # Parent interface (eth1) - trunk port carrying tagged VLANs
-    # Note: IP configuration for eth1 itself is handled elsewhere (networking.interfaces)
+    # Trunk port (AP) - bridge member, carries tagged VLANs
+    # Tagged frames go to VLAN sub-interfaces; untagged frames go to br-lan
     "20-lan-trunk" = {
       matchConfig = {
         Name = lan;
       };
-      # Attach VLANs to this interface
       vlan = [
         "${lan}.${toString vlans.guest.id}"
         "${lan}.${toString vlans.kids.id}"
         "${lan}.${toString vlans.iot.id}"
       ];
-      # Don't configure IP here - let NixOS networking.interfaces handle it
+      networkConfig = {
+        Bridge = bridge;
+      };
       linkConfig = {
         RequiredForOnline = "carrier";
       };
     };
 
-    # Guest VLAN interface configuration
+    # Wired LAN NIC (unmanaged switch) - bridge member
+    "20-wired-lan" = {
+      matchConfig = {
+        Name = wiredLan;
+      };
+      networkConfig = {
+        Bridge = bridge;
+      };
+      linkConfig = {
+        RequiredForOnline = "carrier";
+      };
+    };
+
+    # Bridge interface - main LAN gateway
+    "20-br-lan" = {
+      matchConfig = {
+        Name = bridge;
+      };
+      address = [
+        "${cfg.lan.address}/${toString cfg.lan.prefixLength}"
+      ];
+      networkConfig = {
+        ConfigureWithoutCarrier = true;
+      };
+    };
+
+    # Guest VLAN interface
     "30-vlan-guest" = {
       matchConfig = {
         Name = "${lan}.${toString vlans.guest.id}";
@@ -90,12 +127,11 @@ in
         "${vlans.guest.address}/${toString vlans.guest.prefixLength}"
       ];
       networkConfig = {
-        # Allow interface to come up without carrier (no clients connected)
         ConfigureWithoutCarrier = true;
       };
     };
 
-    # Kids VLAN interface configuration
+    # Kids VLAN interface
     "30-vlan-kids" = {
       matchConfig = {
         Name = "${lan}.${toString vlans.kids.id}";
@@ -108,7 +144,7 @@ in
       };
     };
 
-    # IoT VLAN interface configuration
+    # IoT VLAN interface
     "30-vlan-iot" = {
       matchConfig = {
         Name = "${lan}.${toString vlans.iot.id}";

@@ -6,6 +6,7 @@
 # To find interface names: ip link
 
 {
-  wan = "eth0";  # WAN interface (connects to ISP/modem)
-  lan = "eth1";  # LAN interface (connects to local network/switch)
+  wan = "enp3s0f0";      # WAN interface (connects to ISP/modem)
+  lan = "enp4s0f0";      # Trunk interface (connects to AP, carries VLANs + untagged)
+  wiredLan = "enp3s0f1"; # Wired LAN interface (connects to unmanaged switch)
 }

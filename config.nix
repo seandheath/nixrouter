@@ -5,6 +5,9 @@
 # Secrets are in secrets/secrets.yaml (encrypted with sops).
 
 {
+  # Bridge name for the main LAN (bridges trunk + wired LAN NICs)
+  bridgeName = "br-lan";
+
   # LAN network configuration (native VLAN / untagged)
   lan = {
     address = "10.0.0.1";
@@ -16,8 +19,8 @@
   };
 
   # VLAN network configuration
-  # VLANs are tagged on the LAN interface (eth1) and delivered via trunk port
-  # to an unmanaged switch and wireless AP.
+  # VLANs are tagged on the trunk interface and delivered via 802.1Q to the AP.
+  # Untagged traffic from the trunk and wired LAN NIC are bridged into br-lan.
   vlans = {
     # Guest network - internet access only, isolated from all other networks
     guest = {

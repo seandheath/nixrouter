@@ -1,20 +1,21 @@
 # Firewall and NAT configuration
 #
 # Architecture:
-#   WAN (external) <---> [Router] <---> LAN (10.0.0.0/24)
-#                                  |
+#   WAN (external) <---> [Router] <---> br-lan (10.0.0.0/24)
+#                                  |       ├── eth1 (trunk to AP)
+#                                  |       └── eth2 (unmanaged switch)
 #                                  +---> Guest VLAN (10.10.0.0/24) - isolated
 #                                  +---> Kids VLAN (10.20.0.0/24) - filtered
 #                                  +---> IoT VLAN (10.30.0.0/24) - logged
 #
 # Policy:
-#   - Input: Allow SSH/DHCP/DNS from LAN only, drop from WAN and VLANs
-#   - Forward: Allow LAN→WAN, VLAN→WAN, block inter-VLAN and VLAN→LAN
+#   - Input: Allow SSH/DHCP/DNS from br-lan only, drop from WAN and VLANs
+#   - Forward: Allow br-lan→WAN, VLAN→WAN, block inter-VLAN and VLAN→LAN
 #   - NAT: Masquerade outbound traffic on WAN interface
 #
 # Security:
 #   - VLANs cannot reach each other or the main LAN (10.0.0.0/8 blocked)
-#   - VLANs cannot SSH to router (management from LAN only)
+#   - VLANs cannot SSH to router (management from br-lan only)
 #   - IoT connections are logged for monitoring
 #
 # Reference: https://nixos.wiki/wiki/Firewall
@@ -26,10 +27,11 @@ let
   interfaces = import ../hosts/router/interfaces.nix;
   wan = interfaces.wan;
   lan = interfaces.lan;
+  bridge = cfg.bridgeName;
   lanNetwork = cfg.lan.network;
   vlans = cfg.vlans;
 
-  # VLAN interface names
+  # VLAN interface names (on the trunk port, not the bridge)
   guestIf = "${lan}.${toString vlans.guest.id}";
   kidsIf = "${lan}.${toString vlans.kids.id}";
   iotIf = "${lan}.${toString vlans.iot.id}";
@@ -63,8 +65,8 @@ in
 
     # Per-interface rules
     interfaces = {
-      # LAN interface - allow management services
-      ${lan} = {
+      # Main LAN bridge - allow management services
+      ${bridge} = {
         allowedTCPPorts = [
           22   # SSH
           53   # DNS
@@ -192,7 +194,7 @@ in
     enable = true;
     externalInterface = wan;
     internalInterfaces = [
-      lan
+      bridge
       guestIf
       kidsIf
       iotIf

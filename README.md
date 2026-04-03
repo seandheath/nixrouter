@@ -20,21 +20,19 @@ Hardened NixOS router configuration with VLAN segmentation, ephemeral root, auto
 - 2+ network interfaces (WAN + LAN)
 - 2GB+ RAM, 8GB+ storage
 - NixOS live ISO for installation
-- Managed switch with 802.1Q VLAN support (for VLAN features)
+- Wireless AP with 802.1Q VLAN tagging (for VLAN features)
+- 3+ NICs (WAN + trunk to AP + wired LAN)
 
 ## Network Topology
 
 ```
-Internet <---> [ISP Modem] <---> WAN [Router] LAN <---> [Managed Switch] <---> Clients
-                                 eth0       eth1 (trunk)
-                              (DHCP)    10.0.0.1/24
-                                           |
-                          +--------+--------+--------+
-                          |        |        |        |
-                        Main    Guest    Kids      IoT
-                      Untagged  VLAN 10  VLAN 20  VLAN 30
-                      10.0.0.   10.10.   10.20.   10.30.
-                      0.0/24    0.0/24   0.0/24   0.0/24
+Internet <---> [ISP Modem] <---> WAN [Router] br-lan (10.0.0.1/24)
+                                 eth0           ├── eth1 (trunk) <---> [AP]
+                              (DHCP)            │     ├── untagged -> br-lan
+                                                │     ├── eth1.10 (Guest)
+                                                │     ├── eth1.20 (Kids)
+                                                │     └── eth1.30 (IoT)
+                                                └── eth2 <---> [Unmanaged Switch]
 ```
 
 ### Networks
@@ -116,7 +114,7 @@ sudo ./install.sh
 ```
 
 The installer will:
-1. Prompt for WAN and LAN interface selection
+1. Prompt for WAN, trunk (AP), and wired LAN interface selection
 2. Write interface configuration to `hosts/router/interfaces.nix`
 3. Prompt for disk selection and partition it
 4. Decrypt the age key (prompts for password)
@@ -126,8 +124,8 @@ The installer will:
 
 After reboot:
 - Connect WAN interface to modem/ISP
-- Connect LAN interface to managed switch (configure trunk port for VLANs 10, 20, 30)
-- Assign switch ports to VLANs as needed
+- Connect trunk interface to wireless AP (carries VLANs 10, 20, 30 + untagged)
+- Connect wired LAN interface to unmanaged switch
 - SSH to `admin@10.0.0.1` from the LAN
 
 ## Directory Structure
