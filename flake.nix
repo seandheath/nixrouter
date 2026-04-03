@@ -2,8 +2,7 @@
   description = "NixOS router with ephemeral root and automatic updates";
 
   inputs = {
-    # Using nixos-25.11-small for minimal footprint on router hardware
-    nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/nixos-25.11-small.tar.gz";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
     # Declarative disk partitioning
     disko = {
