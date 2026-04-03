@@ -34,7 +34,7 @@
   # This avoids build-time evaluation of runtime paths
   services.openssh.extraConfig = ''
     Match User admin
-      AuthorizedKeysFile /run/secrets/admin-ssh-keys
+      AuthorizedKeysFile /run/secrets/admin-ssh-keys /run/secrets-for-users.d/1/admin-ssh-keys
   '';
 
   # Persist admin home directory
