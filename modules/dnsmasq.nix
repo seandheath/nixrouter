@@ -1,9 +1,15 @@
 # dnsmasq configuration for DHCP and DNS
 #
 # Provides:
-#   - DHCP server on LAN interface (10.0.0.100-254)
-#   - Caching DNS resolver
-#   - Router advertisement (10.0.0.1)
+#   - DHCP server on LAN and VLAN interfaces
+#   - Caching DNS resolver with optional blocklist filtering
+#   - Router advertisement for each network
+#
+# Network configuration:
+#   - Main LAN (eth1): 10.0.0.0/24, DNS with base blocklist
+#   - Guest VLAN (eth1.10): 10.10.0.0/24, DNS without filtering
+#   - Kids VLAN (eth1.20): 10.20.0.0/24, DNS with extended blocklist
+#   - IoT VLAN (eth1.30): 10.30.0.0/24, DNS without filtering
 #
 # DHCP leases are persisted to /nix/persist/var/lib/dnsmasq
 #
@@ -12,12 +18,18 @@
 { config, lib, pkgs, ... }:
 
 let
+  cfg = import ../config.nix;
   interfaces = import ../hosts/router/interfaces.nix;
   lan = interfaces.lan;
-  lanAddress = "10.0.0.1";
-  dhcpRangeStart = "10.0.0.100";
-  dhcpRangeEnd = "10.0.0.254";
-  leaseTime = "12h";
+  vlans = cfg.vlans;
+
+  # VLAN interface names
+  guestIf = "${lan}.${toString vlans.guest.id}";
+  kidsIf = "${lan}.${toString vlans.kids.id}";
+  iotIf = "${lan}.${toString vlans.iot.id}";
+
+  # Lease time for all networks
+  leaseTime = cfg.lan.leaseTime;
 in
 {
   services.dnsmasq = {
@@ -25,19 +37,46 @@ in
 
     settings = {
       # --- Interface Binding ---
-      # Only listen on LAN interface (not WAN!)
-      interface = lan;
+      # Listen on LAN and all VLAN interfaces (not WAN!)
+      interface = [
+        lan
+        guestIf
+        kidsIf
+        iotIf
+      ];
       bind-interfaces = true;
 
       # --- DHCP Configuration ---
-      dhcp-range = "${dhcpRangeStart},${dhcpRangeEnd},${leaseTime}";
+      # Multiple DHCP ranges for each network
+      dhcp-range = [
+        # Main LAN
+        "${cfg.lan.dhcpStart},${cfg.lan.dhcpEnd},${leaseTime}"
+        # Guest VLAN
+        "${vlans.guest.dhcpStart},${vlans.guest.dhcpEnd},${leaseTime}"
+        # Kids VLAN
+        "${vlans.kids.dhcpStart},${vlans.kids.dhcpEnd},${leaseTime}"
+        # IoT VLAN
+        "${vlans.iot.dhcpStart},${vlans.iot.dhcpEnd},${leaseTime}"
+      ];
 
-      # Advertise router (default gateway)
+      # Per-interface router and DNS server options
+      # dnsmasq auto-detects the correct network based on interface
       dhcp-option = [
-        "option:router,${lanAddress}"
-        "option:dns-server,${lanAddress}"
-        # Optional: NTP server
-        # "option:ntp-server,${lanAddress}"
+        # Main LAN
+        "tag:${lan},option:router,${cfg.lan.address}"
+        "tag:${lan},option:dns-server,${cfg.lan.address}"
+
+        # Guest VLAN
+        "tag:${guestIf},option:router,${vlans.guest.address}"
+        "tag:${guestIf},option:dns-server,${vlans.guest.address}"
+
+        # Kids VLAN
+        "tag:${kidsIf},option:router,${vlans.kids.address}"
+        "tag:${kidsIf},option:dns-server,${vlans.kids.address}"
+
+        # IoT VLAN
+        "tag:${iotIf},option:router,${vlans.iot.address}"
+        "tag:${iotIf},option:dns-server,${vlans.iot.address}"
       ];
 
       # Persist DHCP leases
@@ -51,12 +90,7 @@ in
       no-resolv = true;
 
       # Upstream DNS servers (privacy-focused)
-      server = [
-        "1.1.1.1"        # Cloudflare
-        "1.0.0.1"        # Cloudflare secondary
-        "9.9.9.9"        # Quad9
-        "8.8.8.8"        # Google (fallback)
-      ];
+      server = cfg.upstreamDns;
 
       # Enable DNSSEC validation
       dnssec = true;
@@ -76,6 +110,11 @@ in
       # Don't forward queries without a domain part
       local-service = true;
 
+      # --- Blocklist Configuration ---
+      # Base blocklist applies to Main LAN only (via dns-blocklist.nix)
+      # Kids VLAN uses separate dnsmasq instance for extended filtering
+      # Guest and IoT use unfiltered DNS
+
       # --- Logging ---
       # Log queries (useful for debugging, disable in production)
       # log-queries = true;
@@ -94,13 +133,12 @@ in
   };
 
   # Ensure dnsmasq can write to its state directory
-  # (Directory created by impermanence.nix tmpfiles rules)
   systemd.services.dnsmasq = {
     serviceConfig = {
-      # Run as dnsmasq user (created in impermanence.nix)
+      # Run as dnsmasq user
       User = "dnsmasq";
       Group = "dnsmasq";
-      # Hardening (use mkForce to override NixOS defaults)
+      # Hardening
       ProtectHome = lib.mkForce true;
       ProtectSystem = lib.mkForce "strict";
       ReadWritePaths = [ "/var/lib/dnsmasq" ];
@@ -110,6 +148,9 @@ in
       AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
       CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
     };
+    # Wait for VLAN interfaces to be ready
+    after = [ "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
+    wants = [ "sys-subsystem-net-devices-${guestIf}.device" "sys-subsystem-net-devices-${kidsIf}.device" "sys-subsystem-net-devices-${iotIf}.device" ];
   };
 
   # Create lease file directory with correct permissions

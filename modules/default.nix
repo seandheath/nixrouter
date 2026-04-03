@@ -12,8 +12,10 @@
     ./auto-upgrade.nix
     ./scheduled-reboot.nix
     ./hardening.nix
+    ./vlans.nix
     ./firewall.nix
     ./dnsmasq.nix
+    ./dns-blocklist.nix
     ./ssh.nix
     ./ddclient.nix
     ./sops.nix
