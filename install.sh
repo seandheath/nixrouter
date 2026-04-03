@@ -56,9 +56,9 @@ select_interface() {
         exit 1
     fi
 
-    echo ""
-    info "$prompt"
-    echo ""
+    echo "" >&2
+    info "$prompt" >&2
+    echo "" >&2
 
     local i=1
     for iface in "${interfaces[@]}"; do
@@ -66,11 +66,11 @@ select_interface() {
         local mac state
         mac=$(ip link show "$iface" | grep -oP 'link/ether \K[^ ]+' || echo "N/A")
         state=$(ip link show "$iface" | grep -oP 'state \K[^ ]+' || echo "UNKNOWN")
-        printf "  %d) %-15s MAC: %-17s State: %s\n" "$i" "$iface" "$mac" "$state"
+        printf "  %d) %-15s MAC: %-17s State: %s\n" "$i" "$iface" "$mac" "$state" >&2
         ((i++))
     done
 
-    echo ""
+    echo "" >&2
     while true; do
         read -rp "Selection [1-${#interfaces[@]}]: " selection
         if [[ "$selection" =~ ^[0-9]+$ ]] && ((selection >= 1 && selection <= ${#interfaces[@]})); then
@@ -91,21 +91,21 @@ select_disk() {
         exit 1
     fi
 
-    echo ""
-    info "Select installation disk:"
-    warn "WARNING: This will ERASE ALL DATA on the selected disk!"
-    echo ""
+    echo "" >&2
+    info "Select installation disk:" >&2
+    warn "WARNING: This will ERASE ALL DATA on the selected disk!" >&2
+    echo "" >&2
 
     local i=1
     for disk in "${disks[@]}"; do
         local size model
         size=$(lsblk -dno SIZE "$disk")
         model=$(lsblk -dno MODEL "$disk" | xargs)
-        printf "  %d) %-12s %8s  %s\n" "$i" "$disk" "$size" "$model"
+        printf "  %d) %-12s %8s  %s\n" "$i" "$disk" "$size" "$model" >&2
         ((i++))
     done
 
-    echo ""
+    echo "" >&2
     while true; do
         read -rp "Selection [1-${#disks[@]}]: " selection
         if [[ "$selection" =~ ^[0-9]+$ ]] && ((selection >= 1 && selection <= ${#disks[@]})); then
