@@ -2,8 +2,8 @@
   description = "NixOS router with ephemeral root and automatic updates";
 
   inputs = {
-    # Using nixos-24.11-small for minimal footprint on router hardware
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11-small";
+    # Using nixos-25.11-small for minimal footprint on router hardware
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11-small";
 
     # Declarative disk partitioning
     disko = {
@@ -15,9 +15,8 @@
     impermanence.url = "github:nix-community/impermanence";
 
     # Secrets management
-    # Pinned to Nov 2024 release for nixos-24.11 compatibility
     sops-nix = {
-      url = "github:Mic92/sops-nix/472741cf3fee089241ac9ea705bb2b9e0bfa2978";
+      url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
