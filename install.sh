@@ -228,9 +228,6 @@ run_install() {
 
     success "NixOS installed successfully"
 
-    # Set admin user password for console access
-    info "Set password for admin user:"
-    nixos-enter --root /mnt -- passwd admin
 }
 
 # Main installation flow
