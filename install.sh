@@ -153,11 +153,16 @@ decrypt_age_key() {
     fi
 
     info "Decrypting age key..."
-    info "Enter the password for the age key:"
 
     mkdir -p "$(dirname "$target")"
 
-    if ! age -d "$encrypted" > "$target"; then
+    # Read passphrase explicitly from /dev/tty since stdin may be
+    # exhausted by earlier commands (e.g. nix run disko)
+    local passphrase
+    read -rsp "Enter passphrase for age key: " passphrase < /dev/tty
+    echo "" >&2
+
+    if ! echo "$passphrase" | age -d "$encrypted" > "$target"; then
         error "Failed to decrypt age key"
         exit 1
     fi
@@ -180,11 +185,12 @@ run_disko() {
     fi
 
     # Run disko in disko mode (partition + format + mount)
+    # Redirect stdin from /dev/null to prevent nix from consuming terminal input
     nix --experimental-features 'nix-command flakes' run \
         github:nix-community/disko -- \
         --mode disko \
         "$SCRIPT_DIR/hosts/router/disko.nix" \
-        --arg device "\"$disk\""
+        --arg device "\"$disk\"" < /dev/null
 
     success "Disk partitioned and mounted"
 }
