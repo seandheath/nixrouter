@@ -85,7 +85,7 @@ in
     serviceConfig = {
       ExecStart = lib.concatStringsSep " " [
         "${pkgs.kids-mode}/bin/kids-mode"
-        "-addr 10.0.0.1:3001"
+        "-addr 10.0.0.1:80"
         "-state-dir /var/lib/kids-mode"
         "-agh-url http://10.0.0.1:3000"
         "-agh-credentials-file /run/secrets/agh-admin"
@@ -130,9 +130,10 @@ in
       IPAddressDeny = "any";
       IPAddressAllow = [ "127.0.0.0/8" "10.0.0.0/24" ];
 
-      # Port > 1024, no ambient capabilities needed.
-      AmbientCapabilities = [ ];
-      CapabilityBoundingSet = [ "" ];
+      # Bind to privileged port 80 for http://kids.lan/. Only this
+      # capability - everything else is dropped.
+      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
+      CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
     };
   };
 }

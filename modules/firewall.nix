@@ -70,8 +70,8 @@ in
         allowedTCPPorts = [
           22    # SSH
           53    # DNS
-          3000  # AdGuard Home admin UI (see modules/adguardhome.nix)
-          3001  # kids-mode toggle UI (see modules/kids-mode.nix)
+          80    # kids-mode toggle UI (http://kids.lan/) - see modules/kids-mode.nix
+          3000  # AdGuard Home admin UI - see modules/adguardhome.nix
         ];
         allowedUDPPorts = [
           53   # DNS
