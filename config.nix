@@ -83,7 +83,9 @@
     # One entry per remote device. allowedIp must be a /32 inside `subnet`.
     # Example:
     #   { name = "phone"; publicKey = "abc...="; allowedIp = "10.40.0.2/32"; }
-    peers = [ ];
+    peers = [
+      { name = "SeanPhone"; publicKey = "e14NEY0q1hfrsYwN5i0xUr4jzELmgBF2WMmDI00dKzo="; allowedIp = "10.40.0.2/32";}
+    ];
   };
 
   # System settings
