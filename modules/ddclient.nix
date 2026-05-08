@@ -32,9 +32,12 @@
     interval = "5min";
   };
 
+  # ddclient runs as a DynamicUser. Its prestart script renders
+  # /etc/ddclient.conf as root (substituting the token), so the secret
+  # only needs to be readable by root.
   sops.secrets."ddclient/cloudflare-token" = {
-    owner = "ddclient";
-    group = "ddclient";
+    owner = "root";
+    group = "root";
     mode = "0400";
   };
 }

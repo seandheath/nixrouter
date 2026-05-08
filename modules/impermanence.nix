@@ -43,8 +43,12 @@
 
       # Service-specific state
       "/var/lib/dnsmasq"              # DHCP leases (main LAN dnsmasq)
-      "/var/lib/ddclient"             # Dynamic DNS cache
       "/var/lib/kids-mode"            # kids-mode toggle: mode + whitelist
+      # ddclient state intentionally NOT persisted: nixpkgs flipped the
+      # service to DynamicUser=true, which collides with a bind-mounted
+      # /var/lib/ddclient (EBUSY on systemd's private-state symlink). The
+      # only state is an IP cache; losing it costs one extra API call
+      # after each reboot.
       # AGH runs under DynamicUser, so systemd places its state under
       # /var/lib/private/AdGuardHome and symlinks /var/lib/AdGuardHome
       # to it. Persist the real path; do NOT bind-mount the symlink
@@ -86,7 +90,6 @@
     "d /nix/persist/var/log 0755 root root -"
     "d /nix/persist/var/lib/systemd/timers 0755 root root -"
     "d /nix/persist/var/lib/dnsmasq 0755 dnsmasq dnsmasq -"
-    "d /nix/persist/var/lib/ddclient 0700 ddclient ddclient -"
     "d /nix/persist/var/lib/kids-mode 0750 kids-mode kids-mode -"
     # AGH runs under DynamicUser; systemd places state at
     # /var/lib/private/AdGuardHome (with a symlink at /var/lib/AdGuardHome).
@@ -107,9 +110,6 @@
   };
   users.groups.dnsmasq = {};
 
-  users.users.ddclient = {
-    isSystemUser = true;
-    group = "ddclient";
-  };
-  users.groups.ddclient = {};
+  # ddclient runs as a DynamicUser (provided by nixpkgs), so no static
+  # user/group declaration is needed.
 }
