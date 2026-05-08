@@ -62,9 +62,13 @@ in
       Restart = "on-failure";
       RestartSec = "5s";
 
-      # Capabilities needed for port 53 binding
-      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
-      CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" ];
+      # Capabilities for DHCP:
+      #   CAP_NET_RAW       - raw sockets for DHCP packets
+      #   CAP_NET_ADMIN     - dnsmasq enforces this in DHCP mode
+      #   CAP_NET_BIND_SERVICE - unused now (port=0); kept for parity
+      #     with dnsmasq.service so re-enabling DNS here doesn't break.
+      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" "CAP_NET_ADMIN" ];
+      CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" "CAP_NET_RAW" "CAP_NET_ADMIN" ];
     };
   };
 
