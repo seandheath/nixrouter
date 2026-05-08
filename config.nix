@@ -63,6 +63,6 @@
 
   # System settings
   hostname = "router";
-  timezone = "UTC";
+  timezone = "America/New_York";
   stateVersion = "25.11";
 }

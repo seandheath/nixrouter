@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Mode string
@@ -43,8 +44,9 @@ func newStore(dir string) (*store, error) {
 	return s, nil
 }
 
-func (s *store) modePath() string      { return filepath.Join(s.dir, "mode") }
-func (s *store) whitelistPath() string { return filepath.Join(s.dir, "whitelist.txt") }
+func (s *store) modePath() string       { return filepath.Join(s.dir, "mode") }
+func (s *store) whitelistPath() string  { return filepath.Join(s.dir, "whitelist.txt") }
+func (s *store) playUntilPath() string  { return filepath.Join(s.dir, "play_until") }
 
 func (s *store) Mode() (Mode, error) {
 	s.mu.Lock()
@@ -86,6 +88,43 @@ func (s *store) readWhitelistLocked() ([]string, error) {
 		return nil, err
 	}
 	return parseWhitelist(string(b)), nil
+}
+
+// PlayUntil returns the persisted timer expiry. The bool is false (and t
+// is the zero Time) if the file is missing - that's the normal state in
+// restricted mode and not an error.
+func (s *store) PlayUntil() (time.Time, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	b, err := os.ReadFile(s.playUntilPath())
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return time.Time{}, false, nil
+		}
+		return time.Time{}, false, err
+	}
+	t, err := time.Parse(time.RFC3339, strings.TrimSpace(string(b)))
+	if err != nil {
+		return time.Time{}, false, fmt.Errorf("parse play_until: %w", err)
+	}
+	return t, true, nil
+}
+
+// SetPlayUntil writes the timer expiry as RFC3339 with timezone info.
+func (s *store) SetPlayUntil(t time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return atomicWrite(s.playUntilPath(), []byte(t.Format(time.RFC3339)+"\n"), 0o640)
+}
+
+// ClearPlayUntil removes the timer file. Idempotent - missing file is fine.
+func (s *store) ClearPlayUntil() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := os.Remove(s.playUntilPath()); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
 }
 
 // SetWhitelist replaces the whitelist with a normalized version of the input.

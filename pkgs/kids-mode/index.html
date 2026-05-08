@@ -3,19 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="refresh" content="30">
   <title>Kids mode</title>
   <style>
     :root { color-scheme: light dark; }
     body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2em auto; padding: 0 1em; line-height: 1.4; }
     h1 { margin-bottom: 0.2em; }
+    h2 { margin-top: 1.4em; }
     .mode { font-size: 1.4em; font-weight: 600; }
     .mode.restricted { color: #b03030; }
     .mode.play { color: #208030; }
+    .timer { color: #208030; font-weight: 500; margin: 0.4em 0 0.8em; }
     .err { background: #fff3cd; border: 1px solid #e0c060; border-radius: 4px; padding: 0.6em 0.8em; margin: 1em 0; font-family: ui-monospace, monospace; font-size: 0.9em; }
-    .actions { display: flex; gap: 0.6em; margin: 1em 0; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.5em; margin: 0.6em 0; align-items: center; }
     .actions form { margin: 0; }
-    button { padding: 0.7em 1.2em; font-size: 1em; cursor: pointer; border: 1px solid currentColor; background: transparent; border-radius: 4px; }
+    button { padding: 0.6em 1em; font-size: 1em; cursor: pointer; border: 1px solid currentColor; background: transparent; border-radius: 4px; }
     button.primary { color: white; background: #305080; border-color: #305080; }
+    button.danger  { color: white; background: #b03030; border-color: #b03030; }
+    input[type=number] { padding: 0.5em; font-size: 1em; width: 6em; box-sizing: border-box; }
     textarea { width: 100%; min-height: 14em; font-family: ui-monospace, monospace; font-size: 0.95em; padding: 0.5em; box-sizing: border-box; }
     .hint { color: #666; font-size: 0.9em; }
   </style>
@@ -23,24 +28,39 @@
 <body>
   <h1>Kids mode</h1>
   <p>Current mode: <span class="mode {{.Mode}}">{{.Mode}}</span></p>
+  {{if eq .Mode "play"}}
+    <p class="timer">{{.PlayRemainingMinutes}} min remaining (until {{.PlayUntilLocal}})</p>
+  {{end}}
 
   {{if .LastError}}
   <div class="err"><strong>Reconcile failed:</strong> {{.LastError}}</div>
   {{end}}
 
+  <h2>Restricted</h2>
   <div class="actions">
     <form method="post" action="/toggle">
       <input type="hidden" name="mode" value="restricted">
-      <button class="primary" {{if eq .Mode "restricted"}}disabled{{end}}>Restricted</button>
+      <button class="danger" {{if eq .Mode "restricted"}}disabled{{end}}>Restrict now</button>
     </form>
-    <form method="post" action="/toggle">
-      <input type="hidden" name="mode" value="play">
-      <button class="primary" {{if eq .Mode "play"}}disabled{{end}}>Play</button>
-    </form>
+    <span class="hint">Whitelist-only. Active sessions are dropped.</span>
   </div>
 
+  <h2>Play</h2>
+  <div class="actions">
+    <form method="post" action="/play"><input type="hidden" name="minutes" value="30"><button class="primary">+ 30 min</button></form>
+    <form method="post" action="/play"><input type="hidden" name="minutes" value="60"><button class="primary">+ 1 h</button></form>
+    <form method="post" action="/play"><input type="hidden" name="minutes" value="120"><button class="primary">+ 2 h</button></form>
+    <form method="post" action="/play"><input type="hidden" name="minutes" value="240"><button class="primary">+ 4 h</button></form>
+    <form method="post" action="/play"><input type="hidden" name="until" value="midnight"><button class="primary">Until midnight</button></form>
+  </div>
+  <form method="post" action="/play" class="actions">
+    <label>Custom: <input type="number" name="minutes" min="1" max="1440" placeholder="minutes"></label>
+    <button class="primary" type="submit">Add</button>
+  </form>
+  <p class="hint">Duration buttons add to the current timer. "Until midnight" replaces it.</p>
+
   <h2>Whitelist</h2>
-  <p class="hint">One domain per line. Subdomains are included automatically (e.g. <code>wikipedia.org</code> covers <code>en.wikipedia.org</code>). Active in restricted mode only.</p>
+  <p class="hint">One domain per line. Subdomains included automatically (<code>wikipedia.org</code> covers <code>en.wikipedia.org</code>). Used in restricted mode.</p>
   <form method="post" action="/whitelist">
     <textarea name="whitelist">{{.Whitelist}}</textarea>
     <p><button class="primary" type="submit">Save whitelist</button></p>

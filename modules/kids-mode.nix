@@ -79,6 +79,10 @@ in
         "-state-dir /var/lib/kids-mode"
         "-agh-url http://127.0.0.1:3000"
         # No -agh-credentials-file: runs in no-auth mode. See header.
+        # Conntrack flush args: invoked when transitioning to restricted
+        # to drop in-flight kids-VLAN sessions (see apply.go).
+        "-conntrack ${pkgs.conntrack-tools}/bin/conntrack"
+        "-kids-subnet ${cfg.vlans.kids.network}"
       ];
       User = "kids-mode";
       Group = "kids-mode";
@@ -116,14 +120,20 @@ in
 
       ReadWritePaths = [ "/var/lib/kids-mode" ];
 
-      # Network: loopback only. Bind addr and AGH URL are both 127.0.0.1.
-      RestrictAddressFamilies = [ "AF_INET" "AF_UNIX" ];
+      # Network families:
+      #   AF_INET   - HTTP listen + AGH client
+      #   AF_UNIX   - process-internal sockets the runtime might use
+      #   AF_NETLINK - conntrack uses netlink to talk to nf_conntrack
+      RestrictAddressFamilies = [ "AF_INET" "AF_UNIX" "AF_NETLINK" ];
       IPAddressDeny = "any";
       IPAddressAllow = [ "127.0.0.0/8" ];
 
-      # Unprivileged port, no caps needed.
-      AmbientCapabilities = [ ];
-      CapabilityBoundingSet = [ "" ];
+      # CAP_NET_ADMIN is needed by `conntrack -D` to delete entries
+      # via netlink. The hardening above (ProtectSystem=strict,
+      # IPAddressAllow=loopback only, etc.) limits what the cap can be
+      # used for in practice.
+      AmbientCapabilities = [ "CAP_NET_ADMIN" ];
+      CapabilityBoundingSet = [ "CAP_NET_ADMIN" ];
     };
   };
 }

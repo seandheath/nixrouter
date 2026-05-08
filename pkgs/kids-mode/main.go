@@ -24,6 +24,10 @@ func main() {
 	stateDir := flag.String("state-dir", "/var/lib/kids-mode", "state directory (mode + whitelist)")
 	aghURL := flag.String("agh-url", "http://10.0.0.1:3000", "AdGuard Home base URL")
 	credFile := flag.String("agh-credentials-file", "", "file containing user:password for AGH (empty = no auth)")
+	conntrackPath := flag.String("conntrack", "/run/current-system/sw/bin/conntrack",
+		"path to the conntrack binary (CAP_NET_ADMIN required to run it usefully)")
+	kidsSubnet := flag.String("kids-subnet", "10.20.0.0/24",
+		"Kids VLAN CIDR; -s argument for the conntrack flush on play→restricted")
 	flag.Parse()
 
 	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lmsgprefix)
@@ -49,9 +53,11 @@ func main() {
 	}
 
 	srv := &server{
-		log:    logger,
-		client: client,
-		store:  store,
+		log:           logger,
+		client:        client,
+		store:         store,
+		conntrackPath: *conntrackPath,
+		kidsSubnet:    *kidsSubnet,
 	}
 
 	mux := http.NewServeMux()
@@ -70,6 +76,9 @@ func main() {
 	// 30s until the first success, then sits idle until something
 	// triggers a manual reconcile via srv.requestReconcile().
 	go srv.reconcileLoop(ctx)
+
+	// Watch for play_until expiry; transition to restricted when it passes.
+	go srv.expiryLoop(ctx)
 
 	// Graceful shutdown.
 	go func() {
