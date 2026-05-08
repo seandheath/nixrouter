@@ -36,17 +36,19 @@
       AuthorizedKeysFile ${config.sops.secrets.admin-ssh-keys.path}
   '';
 
-  # Persist admin home directory
+  # Persist the entire admin home directory. Anything dropped in
+  # /home/admin survives reboots. Impermanence auto-creates the
+  # /nix/persist/home/admin path with the declared owner/group/mode
+  # before bind-mounting it over /home/admin.
   environment.persistence."/nix/persist" = {
-    users.admin = {
-      directories = [
-        ".ssh"           # SSH known hosts, etc.
-        ".local/share"   # Application state
-      ];
-      files = [
-        ".bash_history"
-      ];
-    };
+    directories = [
+      {
+        directory = "/home/admin";
+        user = "admin";
+        group = "users";
+        mode = "0700";
+      }
+    ];
   };
 
   # Allow admin to use sudo without password (for automation)
