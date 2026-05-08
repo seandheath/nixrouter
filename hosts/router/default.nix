@@ -92,7 +92,10 @@ in
     iperf3
     nftables
     conntrack-tools
-    git  # For flake updates
+    git          # For flake updates
+    claude-code  # Anthropic Claude Code CLI - dynamic linker would
+                 # block the upstream installer on NixOS, use the
+                 # nixpkgs build instead
   ];
 
   # Enable vim as default editor
