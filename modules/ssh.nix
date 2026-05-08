@@ -99,10 +99,26 @@ in
     ];
   };
 
-  # Wait for the bridge interface before binding to LAN address
+  # Wait for the bridge interface AND for systemd-networkd to assign
+  # the LAN address before binding. `after = [ bridgeDevice ]` only
+  # waits for the netdev to exist - the address isn't necessarily up
+  # yet, which causes sshd's first bind attempt to fail with
+  # "Cannot assign requested address" on cold boot. ExecStartPre
+  # polls for the address so the first ExecStart sees it ready.
   systemd.services.sshd = {
     after = [ bridgeDevice ];
     wants = [ bridgeDevice ];
+    serviceConfig.ExecStartPre = pkgs.writeShellScript "wait-for-lan-addr" ''
+      set -eu
+      for _ in $(seq 1 50); do
+        if ${pkgs.iproute2}/bin/ip -4 addr show dev ${cfg.bridgeName} | ${pkgs.gnugrep}/bin/grep -q "${lanAddress}/"; then
+          exit 0
+        fi
+        sleep 0.2
+      done
+      echo "timeout waiting for ${lanAddress} on ${cfg.bridgeName}" >&2
+      exit 1
+    '';
   };
 
   # Banner shown before login
