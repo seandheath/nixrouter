@@ -17,6 +17,7 @@
     ./dnsmasq.nix
     ./dns-blocklist.nix
     ./adguardhome.nix
+    ./kids-mode.nix
     ./ssh.nix
     ./ddclient.nix
     ./sops.nix

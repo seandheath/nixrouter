@@ -28,6 +28,15 @@
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
       modules = [
+        # Local packages (overlay so pkgs.kids-mode is visible inside modules)
+        ({ ... }: {
+          nixpkgs.overlays = [
+            (final: prev: {
+              kids-mode = final.callPackage ./pkgs/kids-mode { };
+            })
+          ];
+        })
+
         # Flake input modules
         disko.nixosModules.disko
         impermanence.nixosModules.impermanence

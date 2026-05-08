@@ -70,9 +70,8 @@ in
         allowedTCPPorts = [
           22    # SSH
           53    # DNS
-          3000  # AdGuard Home admin UI (Kids VLAN DNS server lives on
-                # 10.20.0.1 but its UI binds to 10.0.0.1 - see
-                # modules/adguardhome.nix)
+          3000  # AdGuard Home admin UI (see modules/adguardhome.nix)
+          3001  # kids-mode toggle UI (see modules/kids-mode.nix)
         ];
         allowedUDPPorts = [
           53   # DNS

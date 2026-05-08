@@ -1,29 +1,32 @@
 # AdGuard Home for the Kids VLAN
 #
-# Provides DNS resolution and content filtering for the Kids VLAN
-# (10.20.0.0/24). The web admin UI is exposed only on the main LAN
-# bridge (brLan, 10.0.0.0/24) so it's reachable from the trusted
-# "skynet" SSID and not from any other VLAN or the WAN.
+# AGH is the sole authority for both DNS and DHCP on the Kids VLAN
+# (10.20.0.0/24). Admin UI is reachable only from brLan
+# ("skynet" SSID).
 #
 # Bindings:
 #   DNS:       10.20.0.1:53   (eth1.20 only)
+#   DHCP:      eth1.20         (range 10.20.0.100-.254, 12h leases)
 #   Admin UI:  10.0.0.1:3000  (brLan only - firewall.nix opens 3000/tcp)
-#
-# DHCP for the Kids VLAN is intentionally NOT served by AGH; the
-# dnsmasq-kids sidecar (modules/dns-blocklist.nix) keeps that role
-# and continues to advertise 10.20.0.1 as the DNS server, which is
-# now answered by AGH.
 #
 # State:
 #   /var/lib/AdGuardHome (persisted via modules/impermanence.nix)
 #
 # mutableSettings = true:
-#   The Nix-supplied `settings` block is merged on top of the live
-#   YAML on every rebuild. yaml-merge does NOT deep-merge arrays, so
-#   declaring `settings.users` or `settings.filters` here would clobber
-#   anything configured via the web UI. We deliberately leave both
-#   unset; the admin user/password is created via the first-run wizard
-#   at http://10.0.0.1:3000/ and filter lists are managed in the UI.
+#   The Nix-supplied `settings` block is merged on top of the live YAML
+#   on every rebuild. yaml-merge deep-merges maps but does NOT merge
+#   arrays - it overwrites them. Practical implications:
+#
+#   - We do NOT declare `settings.users` or `settings.filters` here;
+#     those are managed via the web UI on first boot and preserved.
+#   - We do NOT declare `settings.dns.upstream_dns` or `bootstrap_dns`;
+#     the kids-mode toggle service (modules/kids-mode.nix) owns those
+#     at runtime and would have its writes silently reverted on every
+#     rebuild if Nix declared them too.
+#   - We DO declare the basic DHCP scope (interface, gateway, range,
+#     lease time) since those are stable across rebuilds. Static
+#     leases are NOT declared here - the user manages those via the
+#     UI, and the array-overwrite behavior would otherwise wipe them.
 #
 # References:
 #   - https://github.com/AdguardTeam/AdGuardHome/wiki/Configuration
@@ -48,6 +51,11 @@ in
     # persists across rebuilds. See header comment for caveats.
     mutableSettings = true;
 
+    # Grant CAP_NET_RAW so AGH can serve DHCP. The NixOS module gates
+    # this capability behind allowDHCP; without it AGH starts but
+    # DHCP socket binding fails.
+    allowDHCP = true;
+
     # Admin UI bind. With schema_version >= 23 the NixOS module writes
     # these into `http.address` only - DNS bind is governed entirely by
     # `settings.dns.bind_hosts` below.
@@ -68,38 +76,38 @@ in
         bind_hosts = [ vlans.kids.address ];   # 10.20.0.1
         port = 53;
 
-        # Plain-IP upstreams - no DoH/DoT, so bootstrap_dns is not
-        # strictly needed. Setting it anyway makes a future switch to
-        # encrypted upstreams a one-line change.
-        upstream_dns = cfg.upstreamDns;
-        bootstrap_dns = cfg.upstreamDns;
-
         # Validate DNSSEC at the resolver.
         enable_dnssec = true;
+
+        # upstream_dns / bootstrap_dns intentionally not set here.
+        # kids-mode-web sets them at runtime per current mode. AGH's
+        # built-in default (Quad9) is fine for the brief window before
+        # the toggle service has a chance to reconcile.
       };
 
-      # AGH's own DHCP server stays disabled; dnsmasq-kids handles DHCP
-      # for the Kids VLAN.
-      dhcp.enabled = false;
-
-      # `users` and `filters` intentionally unset - managed via the
-      # web UI. See header comment.
+      # DHCP scope. Static leases are NOT declared here - manage them
+      # via the AGH UI (Settings -> DHCP). We rely on yaml-merge's
+      # deep-merge of maps to leave UI-managed fields like static_leases
+      # untouched on rebuild.
+      dhcp = {
+        enabled = true;
+        interface_name = kidsIf;
+        dhcpv4 = {
+          gateway_ip = vlans.kids.address;        # 10.20.0.1
+          subnet_mask = "255.255.255.0";          # /24, matches vlans.kids.prefixLength
+          range_start = vlans.kids.dhcpStart;     # 10.20.0.100
+          range_end   = vlans.kids.dhcpEnd;       # 10.20.0.254
+          lease_duration = 43200;                 # 12h, in seconds
+          icmp_timeout_msec = 1000;
+        };
+      };
     };
   };
 
-  # Boot/rebuild ordering:
-  #
-  # 1. Wait for the kids VLAN device unit so 10.20.0.1 has been
-  #    assigned by systemd-networkd before AGH tries to bind.
-  # 2. Wait for dnsmasq-kids so on a rebuild that flips it from DNS+DHCP
-  #    to DHCP-only (port=0), it releases :53 before AGH tries to claim
-  #    it. systemd's switch-to-configuration honors `after` ordering
-  #    when restarting units.
+  # AGH's bind_hosts and DHCP interface_name both require eth1.20 to
+  # exist before AGH starts. Mirror the dnsmasq pattern.
   systemd.services.adguardhome = {
-    after = [
-      "sys-subsystem-net-devices-${kidsIf}.device"
-      "dnsmasq-kids.service"
-    ];
+    after = [ "sys-subsystem-net-devices-${kidsIf}.device" ];
     wants = [ "sys-subsystem-net-devices-${kidsIf}.device" ];
   };
 }

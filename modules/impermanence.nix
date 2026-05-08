@@ -42,8 +42,9 @@
       "/var/lib/systemd/timers"
 
       # Service-specific state
-      "/var/lib/dnsmasq"              # DHCP leases
+      "/var/lib/dnsmasq"              # DHCP leases (main LAN dnsmasq)
       "/var/lib/ddclient"             # Dynamic DNS cache
+      "/var/lib/kids-mode"            # kids-mode toggle: mode + whitelist
       # AGH runs under DynamicUser, so systemd places its state under
       # /var/lib/private/AdGuardHome and symlinks /var/lib/AdGuardHome
       # to it. Persist the real path; do NOT bind-mount the symlink
@@ -86,6 +87,7 @@
     "d /nix/persist/var/lib/systemd/timers 0755 root root -"
     "d /nix/persist/var/lib/dnsmasq 0755 dnsmasq dnsmasq -"
     "d /nix/persist/var/lib/ddclient 0700 ddclient ddclient -"
+    "d /nix/persist/var/lib/kids-mode 0750 kids-mode kids-mode -"
     # AGH runs under DynamicUser; systemd places state at
     # /var/lib/private/AdGuardHome (with a symlink at /var/lib/AdGuardHome).
     # We persist the real /private path. Don't pin a static owner -

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kids mode</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2em auto; padding: 0 1em; line-height: 1.4; }
+    h1 { margin-bottom: 0.2em; }
+    .mode { font-size: 1.4em; font-weight: 600; }
+    .mode.restricted { color: #b03030; }
+    .mode.play { color: #208030; }
+    .err { background: #fff3cd; border: 1px solid #e0c060; border-radius: 4px; padding: 0.6em 0.8em; margin: 1em 0; font-family: ui-monospace, monospace; font-size: 0.9em; }
+    .actions { display: flex; gap: 0.6em; margin: 1em 0; }
+    .actions form { margin: 0; }
+    button { padding: 0.7em 1.2em; font-size: 1em; cursor: pointer; border: 1px solid currentColor; background: transparent; border-radius: 4px; }
+    button.primary { color: white; background: #305080; border-color: #305080; }
+    textarea { width: 100%; min-height: 14em; font-family: ui-monospace, monospace; font-size: 0.95em; padding: 0.5em; box-sizing: border-box; }
+    .hint { color: #666; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Kids mode</h1>
+  <p>Current mode: <span class="mode {{.Mode}}">{{.Mode}}</span></p>
+
+  {{if .LastError}}
+  <div class="err"><strong>Reconcile failed:</strong> {{.LastError}}</div>
+  {{end}}
+
+  <div class="actions">
+    <form method="post" action="/toggle">
+      <input type="hidden" name="mode" value="restricted">
+      <button class="primary" {{if eq .Mode "restricted"}}disabled{{end}}>Restricted</button>
+    </form>
+    <form method="post" action="/toggle">
+      <input type="hidden" name="mode" value="play">
+      <button class="primary" {{if eq .Mode "play"}}disabled{{end}}>Play</button>
+    </form>
+  </div>
+
+  <h2>Whitelist</h2>
+  <p class="hint">One domain per line. Subdomains are included automatically (e.g. <code>wikipedia.org</code> covers <code>en.wikipedia.org</code>). Active in restricted mode only.</p>
+  <form method="post" action="/whitelist">
+    <textarea name="whitelist">{{.Whitelist}}</textarea>
+    <p><button class="primary" type="submit">Save whitelist</button></p>
+  </form>
+</body>
+</html>
