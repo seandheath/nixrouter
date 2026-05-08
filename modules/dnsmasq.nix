@@ -88,7 +88,8 @@ in
       # Only served on interfaces dnsmasq listens on (brLan, guest,
       # iot) - kids VLAN uses AGH and doesn't see these.
       address = [
-        "/kids.lan/${cfg.lan.address}"   # 10.0.0.1 - kids-mode toggle UI on :3001
+        "/kids.lan/${cfg.lan.address}"     # kids-mode toggle UI (via nginx)
+        "/adguard.lan/${cfg.lan.address}"  # AdGuard Home UI (via nginx)
       ];
 
       # --- DNS Configuration ---

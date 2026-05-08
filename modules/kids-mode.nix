@@ -1,9 +1,11 @@
 # Kids VLAN mode toggle
 #
-# A tiny HTTP service on http://10.0.0.1:3001 (brLan only) that flips
-# AdGuard Home between two modes:
+# A tiny HTTP service that flips AdGuard Home between two modes:
 #   - restricted: whitelist-only (AGH user_rules = ["/.*/", "@@||d^", ...])
 #   - play:       AGH user_rules = []; family DNS upstreams (1.1.1.3 etc.)
+#
+# Binds 127.0.0.1:3001 (loopback only). nginx (modules/nginx.nix) is
+# the public entry point on http://kids.lan/ from brLan.
 #
 # Persistent state at /var/lib/kids-mode/{mode,whitelist.txt}.
 #
@@ -14,9 +16,10 @@
 # `sops.secrets."agh-admin"` here, and pass
 # `-agh-credentials-file /run/secrets/agh-admin` to the binary.
 #
-# Trust model: brLan is the only interface where 10.0.0.1:80 is
-# reachable (firewall.nix opens 80/tcp on brLan only). The page has
-# no auth of its own - if you're on the trusted LAN you can flip modes.
+# Trust model: nginx is the only thing that can reach kids-mode-web
+# (loopback bind), and nginx itself only listens on the brLan address.
+# The page has no auth of its own - if you're on the trusted LAN you
+# can flip modes.
 
 { config, lib, pkgs, ... }:
 
@@ -64,25 +67,17 @@ in
     description = "Kids VLAN AGH mode toggle (restricted/play)";
     wantedBy = [ "multi-user.target" ];
 
-    # We bind 10.0.0.1 (brLan IP) and call AGH on 10.0.0.1:3000, so we
-    # need brLan up and AGH running. AGH itself isn't strictly required
-    # for the page to render (the reconcile loop tolerates a missing
-    # AGH and reports the failure on the page), but ordering it first
-    # means the common-case startup is silent.
-    after = [
-      "adguardhome.service"
-      "sys-subsystem-net-devices-${bridge}.device"
-    ];
-    wants = [
-      "sys-subsystem-net-devices-${bridge}.device"
-    ];
+    # Both the bind addr and the AGH URL are loopback now, so we don't
+    # actually need brLan up. Keep the AGH ordering so the first
+    # reconcile lands silently.
+    after = [ "adguardhome.service" ];
 
     serviceConfig = {
       ExecStart = lib.concatStringsSep " " [
         "${pkgs.kids-mode}/bin/kids-mode"
-        "-addr 10.0.0.1:80"
+        "-addr 127.0.0.1:3001"
         "-state-dir /var/lib/kids-mode"
-        "-agh-url http://10.0.0.1:3000"
+        "-agh-url http://127.0.0.1:3000"
         # No -agh-credentials-file: runs in no-auth mode. See header.
       ];
       User = "kids-mode";
@@ -121,16 +116,14 @@ in
 
       ReadWritePaths = [ "/var/lib/kids-mode" ];
 
-      # Network: only loopback + brLan (the AGH API and the bind addr
-      # are both on the router itself; 10.0.0.0/24 is brLan).
+      # Network: loopback only. Bind addr and AGH URL are both 127.0.0.1.
       RestrictAddressFamilies = [ "AF_INET" "AF_UNIX" ];
       IPAddressDeny = "any";
-      IPAddressAllow = [ "127.0.0.0/8" "10.0.0.0/24" ];
+      IPAddressAllow = [ "127.0.0.0/8" ];
 
-      # Bind to privileged port 80 for http://kids.lan/. Only this
-      # capability - everything else is dropped.
-      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
-      CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
+      # Unprivileged port, no caps needed.
+      AmbientCapabilities = [ ];
+      CapabilityBoundingSet = [ "" ];
     };
   };
 }

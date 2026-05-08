@@ -7,7 +7,8 @@
 # Bindings:
 #   DNS:       10.20.0.1:53   (eth1.20 only)
 #   DHCP:      eth1.20         (range 10.20.0.100-.254, 12h leases)
-#   Admin UI:  10.0.0.1:3000  (brLan only - firewall.nix opens 3000/tcp)
+#   Admin UI:  127.0.0.1:3000 (loopback only; reach via http://adguard.lan/
+#              which nginx (modules/nginx.nix) proxies on brLan)
 #
 # State:
 #   /var/lib/AdGuardHome (persisted via modules/impermanence.nix)
@@ -59,12 +60,13 @@ in
     # Admin UI bind. With schema_version >= 23 the NixOS module writes
     # these into `http.address` only - DNS bind is governed entirely by
     # `settings.dns.bind_hosts` below.
-    host = cfg.lan.address;   # 10.0.0.1 (brLan gateway)
+    #
+    # 127.0.0.1: loopback only. nginx (modules/nginx.nix) is the
+    # public entry point on http://adguard.lan/ from brLan.
+    host = "127.0.0.1";
     port = 3000;
 
-    # We open 3000/tcp explicitly on brLan in firewall.nix so the UI
-    # cannot leak to other VLANs or the WAN. `openFirewall = true` would
-    # open it on all interfaces.
+    # nginx fronts this; nothing should hit AGH directly from the network.
     openFirewall = false;
 
     settings = {

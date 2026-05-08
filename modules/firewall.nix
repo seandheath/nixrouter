@@ -68,14 +68,13 @@ in
       # Main LAN bridge - allow management services
       ${bridge} = {
         allowedTCPPorts = [
-          22    # SSH
-          53    # DNS
-          80    # kids-mode toggle UI (http://kids.lan/) - see modules/kids-mode.nix
-          3000  # AdGuard Home admin UI - see modules/adguardhome.nix
+          22  # SSH
+          53  # DNS
+          80  # nginx (reverse-proxies http://kids.lan/ + http://adguard.lan/)
         ];
         allowedUDPPorts = [
-          53   # DNS
-          67   # DHCP server
+          53  # DNS
+          67  # DHCP server
         ];
       };
 

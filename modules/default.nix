@@ -18,6 +18,7 @@
     ./dns-blocklist.nix
     ./adguardhome.nix
     ./kids-mode.nix
+    ./nginx.nix
     ./ssh.nix
     ./ddclient.nix
     ./sops.nix
