@@ -6,12 +6,16 @@
 #   - play:       AGH user_rules = []; family DNS upstreams (1.1.1.3 etc.)
 #
 # Persistent state at /var/lib/kids-mode/{mode,whitelist.txt}.
-# Authenticates to AGH's HTTP API via a sops-encrypted user:password
-# secret at /run/secrets/agh-admin (you set this up after running the
-# AGH first-boot wizard - see secrets/secrets.yaml.template).
 #
-# Trust model: brLan is the only interface where 10.0.0.1:3001 is
-# reachable (firewall.nix opens 3001/tcp on brLan only). The page has
+# AGH API auth: this module currently runs in no-auth mode (matches
+# AGH's no-users-configured state). To enable auth: complete the AGH
+# install wizard at http://10.0.0.1:3000/install.html, add an
+# `agh-admin: "user:password"` entry to secrets/secrets.yaml, declare
+# `sops.secrets."agh-admin"` here, and pass
+# `-agh-credentials-file /run/secrets/agh-admin` to the binary.
+#
+# Trust model: brLan is the only interface where 10.0.0.1:80 is
+# reachable (firewall.nix opens 80/tcp on brLan only). The page has
 # no auth of its own - if you're on the trusted LAN you can flip modes.
 
 { config, lib, pkgs, ... }:
@@ -43,15 +47,6 @@ in
     description = "kids-mode AGH toggle service";
   };
   users.groups.kids-mode = {};
-
-  # AGH admin credentials, decrypted at boot to /run/secrets/agh-admin.
-  # File contents must be a single line: "user:password" matching the
-  # admin user/password set during the AGH first-boot wizard.
-  sops.secrets."agh-admin" = {
-    mode = "0400";
-    owner = config.users.users.kids-mode.name;
-    group = config.users.groups.kids-mode.name;
-  };
 
   # Seed the whitelist on first boot only (the `f` rule is a no-op if
   # the file already exists, so subsequent edits via the web UI are
@@ -88,7 +83,7 @@ in
         "-addr 10.0.0.1:80"
         "-state-dir /var/lib/kids-mode"
         "-agh-url http://10.0.0.1:3000"
-        "-agh-credentials-file /run/secrets/agh-admin"
+        # No -agh-credentials-file: runs in no-auth mode. See header.
       ];
       User = "kids-mode";
       Group = "kids-mode";

@@ -23,19 +23,23 @@ func main() {
 	addr := flag.String("addr", "10.0.0.1:3001", "HTTP listen address")
 	stateDir := flag.String("state-dir", "/var/lib/kids-mode", "state directory (mode + whitelist)")
 	aghURL := flag.String("agh-url", "http://10.0.0.1:3000", "AdGuard Home base URL")
-	credFile := flag.String("agh-credentials-file", "/run/secrets/agh-admin", "file containing user:password for AGH")
+	credFile := flag.String("agh-credentials-file", "", "file containing user:password for AGH (empty = no auth)")
 	flag.Parse()
 
 	logger := log.New(os.Stderr, "", log.LstdFlags|log.Lmsgprefix)
 	logger.SetPrefix("[kids-mode] ")
 
-	creds, err := readCredentials(*credFile)
-	if err != nil {
-		// Don't refuse to start - the page should still serve a useful
-		// status banner so the user can see what's missing. Empty creds
-		// will cause every reconcile to fail with 401, which the
-		// reconcile loop reports.
-		logger.Printf("warning: %v", err)
+	// Empty -agh-credentials-file = no-auth mode. AGH accepts requests
+	// without an Authorization header when its `users:` field is empty.
+	var creds basicAuth
+	if *credFile != "" {
+		var err error
+		creds, err = readCredentials(*credFile)
+		if err != nil {
+			logger.Printf("warning: %v", err)
+		}
+	} else {
+		logger.Printf("no AGH credentials configured - sending unauthenticated requests")
 	}
 
 	client := newAGHClient(*aghURL, creds)
