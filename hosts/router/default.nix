@@ -92,8 +92,7 @@ in
     iperf3
     nftables
     conntrack-tools
-    mosh  # Robust SSH replacement - survives packet loss / IP changes
-    git   # For flake updates
+    git  # For flake updates
   ];
 
   # Enable vim as default editor
