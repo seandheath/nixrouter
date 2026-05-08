@@ -16,6 +16,7 @@
     ./firewall.nix
     ./dnsmasq.nix
     ./dns-blocklist.nix
+    ./adguardhome.nix
     ./ssh.nix
     ./ddclient.nix
     ./sops.nix

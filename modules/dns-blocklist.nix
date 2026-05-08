@@ -1,20 +1,21 @@
-# DNS blocklist configuration for content filtering
+# DNS blocklist (Main LAN) and Kids VLAN DHCP sidecar
 #
-# Provides tiered DNS-based content filtering:
-#   - Base blocklist: ads, trackers, malware (Main LAN)
-#   - Extended blocklist: base + adult content, gambling, social (Kids network)
+# Two responsibilities:
+#   1. Base blocklist: ads/trackers/malware loaded into the main
+#      dnsmasq instance via addn-hosts. Updated daily via systemd timer.
+#   2. dnsmasq-kids: a DHCP-only sidecar that serves the Kids VLAN
+#      (eth1.20). It does NOT answer DNS - port=0 disables that.
+#      DNS for the Kids VLAN is handled by AdGuard Home; see
+#      modules/adguardhome.nix. dnsmasq-kids advertises 10.20.0.1
+#      as the DNS server in DHCP, which is now AGH's bind address.
 #
-# Implementation:
-#   - Uses StevenBlack/hosts blocklists
-#   - Base blocklist loaded via dnsmasq addn-hosts
-#   - Kids network runs separate dnsmasq instance with extended blocklist
-#   - Blocklists updated daily via systemd timer
+# Why split DHCP from DNS for the Kids VLAN:
+#   AGH brings a web UI, per-client policies, and richer filter
+#   management. dnsmasq-kids stays for DHCP because it's already
+#   battle-tested on this router and AGH's DHCP is less proven.
 #
-# Blocklist sources:
-#   - Base: https://github.com/StevenBlack/hosts (unified hosts)
-#   - Extended: https://github.com/StevenBlack/hosts (alternates/fakenews-gambling-porn-social)
-#
-# Reference: https://github.com/StevenBlack/hosts
+# Blocklist source:
+#   Base: https://github.com/StevenBlack/hosts (unified hosts)
 
 { config, lib, pkgs, ... }:
 
@@ -26,15 +27,12 @@ let
 
   kidsIf = "${lan}.${toString vlans.kids.id}";
 
-  # Blocklist file locations
+  # Blocklist file location (main LAN dnsmasq only - the Kids VLAN
+  # uses AGH for filtering now)
   baseBlocklist = "/var/lib/dnsmasq/blocklist-base.hosts";
-  kidsBlocklist = "/var/lib/dnsmasq/blocklist-kids.hosts";
 
-  # StevenBlack hosts URLs
-  # Unified hosts: ads, malware, fakenews
+  # StevenBlack hosts URL: ads, malware, fakenews (unified)
   baseBlocklistUrl = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
-  # Extended: unified + gambling + porn + social
-  kidsBlocklistUrl = "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling-porn-social/hosts";
 in
 {
   # Add blocklist to main dnsmasq instance (LAN only)
@@ -45,10 +43,12 @@ in
     addn-hosts = baseBlocklist;
   };
 
-  # Separate dnsmasq instance for Kids network with extended filtering
-  # This runs on a different port internally and handles Kids VLAN DNS
+  # DHCP sidecar for the Kids VLAN. DNS is served by AGH; this
+  # instance runs with port=0 so it does not bind :53.
+  # CAP_NET_BIND_SERVICE is now unused but kept for parity with the
+  # main dnsmasq.service in case DNS is ever re-enabled here.
   systemd.services.dnsmasq-kids = {
-    description = "DNS forwarder and DHCP server (Kids network - filtered)";
+    description = "DHCP server (Kids network)";
     documentation = [ "man:dnsmasq(8)" ];
     after = [ "network.target" "sys-subsystem-net-devices-${kidsIf}.device" ];
     wants = [ "sys-subsystem-net-devices-${kidsIf}.device" ];
@@ -68,17 +68,22 @@ in
     };
   };
 
-  # Configuration file for Kids dnsmasq instance
+  # Configuration file for Kids dnsmasq instance (DHCP-only)
+  #
+  # port=0 disables the DNS resolver entirely - dnsmasq still binds
+  # raw sockets for DHCP independently of any UDP/53 listener.
+  # Clients still get 10.20.0.1 advertised as their DNS server, which
+  # is answered by AGH (see modules/adguardhome.nix).
   environment.etc."dnsmasq-kids.conf".text = ''
-    # Kids network dnsmasq configuration
-    # Extended content filtering
+    # Kids VLAN DHCP-only configuration
+    # DNS is handled by AdGuard Home on 10.20.0.1:53.
 
     # Bind only to Kids VLAN interface
     interface=${kidsIf}
     bind-interfaces
 
-    # DNS on standard port
-    port=53
+    # Disable DNS listener (DHCP only)
+    port=0
 
     # DHCP for Kids VLAN
     dhcp-range=${vlans.kids.dhcpStart},${vlans.kids.dhcpEnd},${cfg.lan.leaseTime}
@@ -86,28 +91,6 @@ in
     dhcp-option=option:dns-server,${vlans.kids.address}
     dhcp-leasefile=/var/lib/dnsmasq/dnsmasq-kids.leases
     dhcp-authoritative
-
-    # Upstream DNS (same as main)
-    no-resolv
-    ${lib.concatMapStringsSep "\n" (s: "server=${s}") cfg.upstreamDns}
-
-    # DNSSEC
-    dnssec
-    trust-anchor=.,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D
-
-    # Cache
-    cache-size=5000
-    neg-ttl=60
-
-    # Security
-    domain-needed
-    bogus-priv
-
-    # Extended blocklist (kids content filtering)
-    addn-hosts=${kidsBlocklist}
-
-    # Log blocked queries (optional, can be verbose)
-    # log-queries
   '';
 
   # Systemd timer to update blocklists daily
@@ -121,40 +104,29 @@ in
     script = ''
       set -euo pipefail
 
-      echo "Updating DNS blocklists..."
+      echo "Updating DNS blocklist (main LAN)..."
 
       # Create directory if needed
       mkdir -p /var/lib/dnsmasq
 
       # Download base blocklist (ads, trackers, malware)
-      echo "Fetching base blocklist..."
       curl -sL --fail --retry 3 --max-time 60 \
         -o ${baseBlocklist}.tmp \
         "${baseBlocklistUrl}"
 
-      # Download extended blocklist (base + adult, gambling, social)
-      echo "Fetching kids blocklist..."
-      curl -sL --fail --retry 3 --max-time 60 \
-        -o ${kidsBlocklist}.tmp \
-        "${kidsBlocklistUrl}"
-
-      # Atomically replace old files
+      # Atomically replace old file
       mv ${baseBlocklist}.tmp ${baseBlocklist}
-      mv ${kidsBlocklist}.tmp ${kidsBlocklist}
 
       # Fix permissions
-      chown dnsmasq:dnsmasq ${baseBlocklist} ${kidsBlocklist}
-      chmod 644 ${baseBlocklist} ${kidsBlocklist}
+      chown dnsmasq:dnsmasq ${baseBlocklist}
+      chmod 644 ${baseBlocklist}
 
-      echo "Blocklists updated successfully"
       echo "Base blocklist: $(wc -l < ${baseBlocklist}) entries"
-      echo "Kids blocklist: $(wc -l < ${kidsBlocklist}) entries"
 
-      # Reload dnsmasq to pick up new blocklists
-      # Use SIGHUP for graceful reload
-      echo "Reloading dnsmasq..."
+      # SIGHUP for graceful reload of the main dnsmasq instance.
+      # dnsmasq-kids no longer reads any blocklist (DHCP-only), so it
+      # does not need reloading.
       systemctl reload dnsmasq || true
-      systemctl reload dnsmasq-kids || true
 
       echo "Done"
     '';
@@ -181,11 +153,11 @@ in
     };
   };
 
-  # Create initial empty blocklist files so dnsmasq can start
-  # They'll be populated by the update service
+  # Create initial empty blocklist file so dnsmasq can start before
+  # the first fetch completes. The DHCP lease file for dnsmasq-kids
+  # is also created here.
   systemd.tmpfiles.rules = [
     "f ${baseBlocklist} 0644 dnsmasq dnsmasq -"
-    "f ${kidsBlocklist} 0644 dnsmasq dnsmasq -"
     "f /var/lib/dnsmasq/dnsmasq-kids.leases 0644 dnsmasq dnsmasq -"
   ];
 
@@ -196,7 +168,7 @@ in
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
-    before = [ "dnsmasq.service" "dnsmasq-kids.service" ];
+    before = [ "dnsmasq.service" ];
 
     # Only run if blocklists don't exist or are empty
     unitConfig = {

@@ -42,8 +42,9 @@
       "/var/lib/systemd/timers"
 
       # Service-specific state
-      "/var/lib/dnsmasq"   # DHCP leases
-      "/var/lib/ddclient"  # Dynamic DNS cache
+      "/var/lib/dnsmasq"      # DHCP leases
+      "/var/lib/ddclient"     # Dynamic DNS cache
+      "/var/lib/AdGuardHome"  # AGH config, filters, query log, stats
 
       # sops-nix age key location
       "/var/lib/sops-nix"
@@ -81,6 +82,11 @@
     "d /nix/persist/var/lib/systemd/timers 0755 root root -"
     "d /nix/persist/var/lib/dnsmasq 0755 dnsmasq dnsmasq -"
     "d /nix/persist/var/lib/ddclient 0700 ddclient ddclient -"
+    # AGH runs under DynamicUser; do NOT pin a static owner here.
+    # systemd's StateDirectory=AdGuardHome will chown the bind-mounted
+    # path to the dynamic UID at service start. The UID is stable
+    # across reboots because /var/lib/nixos is also persisted above.
+    "d /nix/persist/var/lib/AdGuardHome 0700 root root -"
     "d /nix/persist/var/lib/sops-nix 0700 root root -"
     "d /nix/persist/root/.cache/nix 0700 root root -"
     "d /nix/persist/etc/ssh 0755 root root -"
