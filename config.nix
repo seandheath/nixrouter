@@ -73,7 +73,7 @@
   #      client device.
   #   3. Flip `enable = true` and rebuild.
   wireguard = {
-    enable = false;                    # set true after sops + peers populated
+    enable = true;                     # sops + peers populated
     port = 51820;                      # UDP, opened on WAN
     serverIp = "10.40.0.1";            # router's address inside the tunnel
     subnet = "10.40.0.0/24";           # tunnel subnet (LAN=0, Guest=10, Kids=20, IoT=30, VPN=40)
