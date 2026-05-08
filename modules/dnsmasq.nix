@@ -82,6 +82,15 @@ in
       # Authoritative mode (respond to all DHCP requests, even if not ours)
       dhcp-authoritative = true;
 
+      # --- Local Hostname Records ---
+      # Resolve friendly LAN-only names to router IPs. The /name/ip
+      # form covers the bare name and any subdomain, A and AAAA both.
+      # Only served on interfaces dnsmasq listens on (brLan, guest,
+      # iot) - kids VLAN uses AGH and doesn't see these.
+      address = [
+        "/kids.lan/${cfg.lan.address}"   # 10.0.0.1 - kids-mode toggle UI on :3001
+      ];
+
       # --- DNS Configuration ---
       # Don't read /etc/resolv.conf (use upstream servers below)
       no-resolv = true;
