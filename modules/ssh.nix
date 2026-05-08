@@ -79,10 +79,18 @@ in
         "diffie-hellman-group18-sha512"
       ];
 
-      # --- Client Keepalive ---
-      # Disconnect inactive clients after 3 missed keepalives (15 min)
-      ClientAliveInterval = 300;
+      # --- Keepalive Settings ---
+      # Send keepalive every 30 seconds to prevent connection stalls.
+      # Idle connections that miss 3 keepalives (90 seconds) are dropped.
+      # This keeps connections alive through NAT/firewalls with short
+      # TCP-idle timeouts (typical: 5-15 min). Previous 5-min value sat
+      # right at the boundary and triggered mid-session freezes when
+      # intermediate stateful devices forgot the connection.
+      ClientAliveInterval = 30;
       ClientAliveCountMax = 3;
+
+      # Enable TCP keepalive (uses kernel settings as fallback)
+      TCPKeepAlive = true;
     };
 
     # Host keys (generated during install, persisted via impermanence)
