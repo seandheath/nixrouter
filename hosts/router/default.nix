@@ -9,6 +9,7 @@ let
   interfaces = import ./interfaces.nix;
   wan = interfaces.wan;
   lan = interfaces.lan;
+  cfg = import ../../config.nix;
 in
 {
   imports = [
@@ -69,8 +70,9 @@ in
     timeout = 30;
   };
 
-  # Timezone (adjust to your location)
-  time.timeZone = "UTC";
+  # Timezone — sourced from config.nix so kids-mode "until midnight"
+  # and other local-time logic line up with system time.
+  time.timeZone = cfg.timezone;
 
   # Locale
   i18n.defaultLocale = "en_US.UTF-8";
@@ -90,7 +92,8 @@ in
     iperf3
     nftables
     conntrack-tools
-    git  # For flake updates
+    mosh  # Robust SSH replacement - survives packet loss / IP changes
+    git   # For flake updates
   ];
 
   # Enable vim as default editor

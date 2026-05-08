@@ -76,6 +76,14 @@ in
           53  # DNS
           67  # DHCP server
         ];
+        # mosh allocates one UDP port per session in this range. mosh's
+        # default upper bound is 61000; opening a wider 60000-60100 here
+        # supports up to 100 concurrent mosh sessions, plenty for a
+        # home router. Restrict to brLan so mosh isn't reachable from
+        # other VLANs or the WAN.
+        allowedUDPPortRanges = [
+          { from = 60000; to = 60100; }
+        ];
       };
 
       # WAN interface - nothing open
