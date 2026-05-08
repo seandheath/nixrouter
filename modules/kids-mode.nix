@@ -113,7 +113,9 @@ in
       ProtectProc = "invisible";
       PrivateTmp = true;
       PrivateDevices = true;
-      PrivateUsers = true;
+      # PrivateUsers = true intentionally NOT set: it puts the service
+      # in a user namespace where CAP_NET_BIND_SERVICE does not apply
+      # to host-namespace ports, breaking the bind on :80.
       LockPersonality = true;
       MemoryDenyWriteExecute = true;
       RestrictRealtime = true;
