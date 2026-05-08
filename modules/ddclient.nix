@@ -1,87 +1,40 @@
-# Dynamic DNS client configuration (stub)
+# Dynamic DNS client (Cloudflare)
 #
-# This module provides a template for configuring ddclient with various
-# DNS providers. Actual credentials should be stored in secrets/secrets.yaml
-# and referenced via sops-nix.
+# Keeps an A record up to date with the router's current WAN IP so the
+# WireGuard VPN endpoint (vpn.luckyobserver.com) is always reachable
+# despite the dynamic public IP from the ISP.
 #
-# Supported providers: Cloudflare, Namecheap, DuckDNS, Google Domains, etc.
+# Credentials live in sops (secrets/secrets.yaml ::
+# ddclient.cloudflare-token). The Cloudflare token must be scoped to
+# Zone:DNS:Edit on the luckyobserver.com zone.
 #
-# To enable:
-#   1. Uncomment the provider configuration below
-#   2. Add credentials to secrets/secrets.yaml
-#   3. Uncomment the sops secret references
-#
-# Reference: https://ddclient.net/
+# Reference: https://ddclient.net/protocols.html#cloudflare
 
 { config, lib, pkgs, ... }:
 
 {
-  # ddclient is disabled by default - uncomment to enable
   services.ddclient = {
-    enable = false;  # Set to true after configuring
-
-    # Use IPv4 by default
+    enable = true;
     protocol = "cloudflare";
+    zone = "luckyobserver.com";
+    domains = [ "vpn.luckyobserver.com" ];
 
-    # Domain(s) to update
-    domains = [ "example.com" ];
+    # Cloudflare API token auth: literal username "token", password is
+    # the API token itself, supplied via sops.
+    username = "token";
+    passwordFile = config.sops.secrets."ddclient/cloudflare-token".path;
 
-    # How to detect external IP
-    use = "web, web=checkip.amazonaws.com";
+    # Detect the public IP from the outside (the WAN interface may sit
+    # behind a modem in bridge mode; web detection is more reliable).
+    usev4 = "webv4, webv4=checkip.amazonaws.com";
 
-    # Update interval (seconds)
+    # Default ddclient interval is 5 minutes; that's fine.
     interval = "5min";
-
-    # Configuration is written to /etc/ddclient.conf
-    # Credentials should come from sops secrets
-    # extraConfig = ''
-    #   ssl=yes
-    # '';
   };
 
-  #
-  # --- Cloudflare Example ---
-  #
-  # services.ddclient = {
-  #   enable = true;
-  #   protocol = "cloudflare";
-  #   zone = "example.com";
-  #   domains = [ "home.example.com" ];
-  #   username = "token";  # Use "token" for API token auth
-  #   passwordFile = config.sops.secrets."ddclient/cloudflare-token".path;
-  #   use = "web, web=checkip.amazonaws.com";
-  # };
-  #
-  # sops.secrets."ddclient/cloudflare-token" = {
-  #   owner = "ddclient";
-  #   group = "ddclient";
-  # };
-
-  #
-  # --- Namecheap Example ---
-  #
-  # services.ddclient = {
-  #   enable = true;
-  #   protocol = "namecheap";
-  #   server = "dynamicdns.park-your-domain.com";
-  #   domains = [ "@" "www" ];  # Subdomains to update
-  #   username = "example.com";  # Your domain
-  #   passwordFile = config.sops.secrets."ddclient/namecheap-password".path;
-  #   use = "web, web=checkip.amazonaws.com";
-  # };
-
-  #
-  # --- DuckDNS Example ---
-  #
-  # services.ddclient = {
-  #   enable = true;
-  #   protocol = "duckdns";
-  #   domains = [ "mysubdomain" ];
-  #   username = "nouser";  # DuckDNS doesn't use username
-  #   passwordFile = config.sops.secrets."ddclient/duckdns-token".path;
-  #   use = "web, web=checkip.amazonaws.com";
-  # };
-
-  # State directory for ddclient (persisted via impermanence)
-  # Stores the last known IP to avoid unnecessary updates
+  sops.secrets."ddclient/cloudflare-token" = {
+    owner = "ddclient";
+    group = "ddclient";
+    mode = "0400";
+  };
 }

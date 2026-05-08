@@ -209,6 +209,42 @@
 
 ---
 
+## 2026-05-08 — Add WireGuard Remote-Access VPN
+
+**Decision:** Add a `wg0` WireGuard interface on the router (UDP 51820 on
+WAN) so off-network devices (starting with an Android phone) can reach
+`brLan` over an encrypted tunnel. VPN subnet `10.40.0.0/24`, server
+`10.40.0.1`. Reach is restricted to brLan; Guest/Kids/IoT VLANs stay
+isolated. Public reachability via Cloudflare DDNS at `vpn.luckyobserver.com`.
+
+**Rationale:**
+1. Remote management of router and LAN services without exposing them to
+   the public internet
+2. Plain WireGuard is the minimum viable solution — single peer for now,
+   list-shaped for adding more later
+3. Forward-not-NAT routing preserves real client IPs on brLan and keeps
+   future per-peer firewalling simple
+4. Split-tunnel is the default — clients only route LAN traffic through
+   home, not their general internet
+5. sops-nix already handles the server private key; no new secrets backend
+6. ddclient's Cloudflare provider already had a working template; just
+   needed activation
+
+**Alternatives considered:**
+- Headscale + Tailscale — overkill for one phone; requires persisted
+  state, an HTTPS endpoint, and DERP planning. Worth revisiting if/when
+  the peer count grows or NAT traversal becomes a concern.
+- wg-quick — adds a layer over `networking.wireguard.interfaces` without
+  benefit for a static-peer setup.
+- systemd-networkd `Kind=wireguard` netdev — would force a
+  `systemd-network`-readable key file, complicating sops integration.
+- Full-tunnel (`AllowedIPs = 0.0.0.0/0`) — left as a one-line config
+  flip later; not worth the always-on AP mobile data cost by default.
+- NAT (masquerade wg0 → brLan) — hides client IP, blocks future per-peer
+  ACLs; chose plain forwarding instead.
+
+---
+
 <!-- TODO:SECURITY — SSH keys for admin user must be added before deployment -->
 <!-- TODO:SECURITY — Audit nftables rules for completeness after real-world testing -->
 <!-- TODO:FEATURE — Add IPv6 support (currently IPv4-only) -->

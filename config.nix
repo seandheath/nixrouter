@@ -61,6 +61,31 @@
     "8.8.8.8"      # Google (fallback)
   ];
 
+  # WireGuard remote-access VPN
+  # Brings up a wg0 interface on the router so off-network devices can
+  # reach brLan over an encrypted UDP tunnel. Other VLANs stay isolated.
+  #
+  # Bootstrap (see docs/log.md):
+  #   1. Generate router keypair, store private key in sops as
+  #      wireguard/server-private-key.
+  #   2. Generate per-peer keypair on each client; add the client's PUBLIC
+  #      key here in `peers`. The client's private key never leaves the
+  #      client device.
+  #   3. Flip `enable = true` and rebuild.
+  wireguard = {
+    enable = false;                    # set true after sops + peers populated
+    port = 51820;                      # UDP, opened on WAN
+    serverIp = "10.40.0.1";            # router's address inside the tunnel
+    subnet = "10.40.0.0/24";           # tunnel subnet (LAN=0, Guest=10, Kids=20, IoT=30, VPN=40)
+    prefixLength = 24;
+    ddnsHostname = "vpn.luckyobserver.com";  # phone connects to this:51820
+
+    # One entry per remote device. allowedIp must be a /32 inside `subnet`.
+    # Example:
+    #   { name = "phone"; publicKey = "abc...="; allowedIp = "10.40.0.2/32"; }
+    peers = [ ];
+  };
+
   # System settings
   hostname = "router";
   timezone = "America/New_York";

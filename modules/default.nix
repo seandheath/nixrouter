@@ -14,6 +14,7 @@
     ./hardening.nix
     ./vlans.nix
     ./firewall.nix
+    ./wireguard.nix
     ./dnsmasq.nix
     ./dns-blocklist.nix
     ./adguardhome.nix

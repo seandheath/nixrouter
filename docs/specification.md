@@ -76,6 +76,16 @@ Internet <---> [ISP Modem] <---> WAN [Router] LAN <---> [Switch] <---> Clients
 - Decrypted at install time to persistence
 - Secrets available at runtime via `/run/secrets`
 
+### Remote Access (WireGuard)
+
+- Single `wg0` interface on the router (UDP 51820 on WAN)
+- VPN subnet: 10.40.0.0/24 (server 10.40.0.1)
+- Reaches `brLan` only; isolated from Guest/Kids/IoT VLANs
+- Split-tunnel by default (clients send only LAN-bound traffic)
+- DDNS via Cloudflare keeps `vpn.luckyobserver.com` pointing at the
+  current dynamic public IP
+- Server private key in sops; per-peer public keys in `config.nix`
+
 ## Configuration Files
 
 | File | Purpose |
@@ -143,7 +153,6 @@ Generated at install time in `hosts/router/interfaces.nix`:
 ## Out of Scope
 
 - IPv6 (can be added later)
-- VPN server
 - WiFi AP (use separate AP hardware)
 - Complex QoS
 - Multi-WAN failover
