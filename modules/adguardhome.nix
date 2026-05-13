@@ -81,6 +81,14 @@ in
         # Validate DNSSEC at the resolver.
         enable_dnssec = true;
 
+        # Don't forward private-range PTRs upstream. AGH auto-detects
+        # the host's local resolver as 127.0.0.53:53 (systemd-resolved
+        # stub), which isn't running on this router - dnsmasq is. Every
+        # PTR for a 10.20.0.x client would stall 2s before timing out.
+        # AGH still answers PTRs for its own DHCP leases from its
+        # internal lease table.
+        use_private_ptr_resolvers = false;
+
         # upstream_dns / bootstrap_dns intentionally not set here.
         # kids-mode-web sets them at runtime per current mode. AGH's
         # built-in default (Quad9) is fine for the brief window before
