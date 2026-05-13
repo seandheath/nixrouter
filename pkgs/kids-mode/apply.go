@@ -17,15 +17,15 @@ import (
 	"time"
 )
 
-// Privacy upstreams - normal-everyday Cloudflare/Quad9.
-// Used in restricted mode (the rules block almost everything anyway,
-// so the upstream barely matters - but a non-filtering upstream
-// avoids confusing failures on whitelisted sites).
+// Restricted-mode upstreams - same family-filtering resolvers as play
+// mode. The AGH user_rules block almost everything in restricted anyway,
+// so the upstream barely matters for the kid's experience - but keeping
+// the family list here means any whitelisted site still passes through
+// a malware/adult-content filter.
 var privacyUpstreams = []string{
-	"1.1.1.1",
-	"1.0.0.1",
-	"9.9.9.9",
-	"8.8.8.8",
+	"1.1.1.3",
+	"1.0.0.3",
+	"9.9.9.10",
 }
 
 // Family DNS upstreams - Cloudflare for Families + Quad9 family.
