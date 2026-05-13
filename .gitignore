@@ -1,6 +1,7 @@
 # Build artifacts
 result
 result-*
+pkgs/kids-mode/kids-mode
 
 # Local/development files
 local/
