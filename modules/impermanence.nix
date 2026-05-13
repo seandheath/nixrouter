@@ -96,7 +96,7 @@
     # We persist the real /private path. Don't pin a static owner -
     # systemd's StateDirectory will chown to the dynamic UID at start.
     # UID is stable across reboots because /var/lib/nixos is persisted.
-    "d /nix/persist/var/lib/private 0755 root root -"
+    "d /nix/persist/var/lib/private 0700 root root -"
     "d /nix/persist/var/lib/private/AdGuardHome 0700 root root -"
     "d /nix/persist/var/lib/sops-nix 0700 root root -"
     "d /nix/persist/root/.cache/nix 0700 root root -"
