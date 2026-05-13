@@ -93,11 +93,11 @@
     "d /nix/persist/var/lib/kids-mode 0750 kids-mode kids-mode -"
     # AGH runs under DynamicUser; systemd places state at
     # /var/lib/private/AdGuardHome (with a symlink at /var/lib/AdGuardHome).
-    # We persist the real /private path. Don't pin a static owner -
-    # systemd's StateDirectory will chown to the dynamic UID at start.
-    # UID is stable across reboots because /var/lib/nixos is persisted.
+    # We persist the real /private path. The parent must be root-owned for
+    # systemd's DynamicUser sandboxing, but the service directory should
+    # NOT be forced to root - use "-" so systemd can chown it on start.
     "d /nix/persist/var/lib/private 0700 root root -"
-    "d /nix/persist/var/lib/private/AdGuardHome 0700 root root -"
+    "d /nix/persist/var/lib/private/AdGuardHome 0700 - - -"
     "d /nix/persist/var/lib/sops-nix 0700 root root -"
     "d /nix/persist/root/.cache/nix 0700 root root -"
     "d /nix/persist/etc/ssh 0755 root root -"
