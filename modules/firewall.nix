@@ -56,8 +56,9 @@ in
     # Default: reject packets to closed ports (more polite than drop)
     rejectPackets = false;  # Use drop instead for stealth
 
-    # Log refused connections (useful for debugging, can be noisy)
-    logRefusedConnections = true;
+    # Refused-connection logging off: dmesg/journal gets spammy on a
+    # WAN-facing router. Flip back to true for debugging.
+    logRefusedConnections = false;
     logRefusedPackets = false;
 
     # Allow ICMP ping
