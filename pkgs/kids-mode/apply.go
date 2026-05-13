@@ -202,17 +202,26 @@ func (s *server) reconcileLoop(ctx context.Context) {
 			s.log.Printf("reconcile failed: %v", err)
 		}
 
-		// On success: wait for an explicit trigger (mode/whitelist edit)
-		// or a low-frequency safety check.
-		// On failure: keep ticking every 30s.
-		select {
-		case <-ctx.Done():
-			return
-		case <-s.reconcile:
-		case <-ticker.C:
-			// If last apply succeeded, skip - nothing changed.
-			if last := s.lastErr.Load(); last != nil && *last == "" {
-				continue
+		// Wait for the next reason to re-apply. On success: only an
+		// explicit trigger (mode/whitelist edit) wakes us, so the
+		// steady state is silent - no AGH dnsforward churn. On
+		// failure: the 30s ticker also drives retries.
+		//
+		// Prior form used a single select with `continue` on a
+		// successful tick, but `continue` in this outer for-loop just
+		// falls through to the top and re-runs applyOnce - so AGH
+		// reconfigured every 30s. The inner waitLoop fixes that.
+	waitLoop:
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-s.reconcile:
+				break waitLoop
+			case <-ticker.C:
+				if last := s.lastErr.Load(); last != nil && *last != "" {
+					break waitLoop
+				}
 			}
 		}
 	}
