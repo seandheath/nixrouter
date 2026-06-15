@@ -1,5 +1,34 @@
 # Decision Log
 
+## 2026-06-15 — Split-Horizon DNS for `*.luckyobserver.com`
+
+**Decision:** Have the router's dnsmasq answer `nc/immich/calibre/paper.luckyobserver.com`
+locally with hydrogen's LAN address (`10.0.0.2`) for all LAN and WireGuard
+clients. Records are driven by a `localServices` knob in `config.nix` and
+generated into `services.dnsmasq.settings.address`.
+
+**Rationale:**
+1. Keeps self-hosted traffic (Nextcloud, Immich, Calibre, paperless) on the
+   LAN/tunnel instead of hairpinning out to the public IP.
+2. Hydrogen already runs nginx and terminates TLS with a `*.luckyobserver.com`
+   Cloudflare DNS-01 wildcard cert, so the router only needs to point the
+   names at it — no reverse proxy, ACME, or extra open ports on the router.
+3. Resolves correctly off-network too: WG clients use the router as resolver
+   (dnsmasq listens on `wg0`), and `10.0.0.0/24` is in their split-tunnel
+   AllowedIPs, so traffic to `10.0.0.2` flows through the tunnel.
+
+**Alternatives considered:**
+- Terminate TLS on the router and reverse-proxy to hydrogen's http nginx —
+  rejected: splits the cert/proxy across two repos and adds a plaintext
+  LAN hop. TLS stays co-located with the services on hydrogen instead.
+- Wildcard `/luckyobserver.com/10.0.0.2` — rejected: it's a real public zone
+  and would shadow `vpn.luckyobserver.com` (the WG endpoint A record),
+  breaking VPN-endpoint resolution for LAN clients. Per-subdomain only.
+
+<!-- TODO — Cross-repo dependency (nixos repo / hydrogen): nginx vhosts +
+     the *.luckyobserver.com wildcard cert must serve these four names, or
+     TLS will name-mismatch even though the router resolves them correctly. -->
+
 ## 2026-03-23 — Convert Back to Specific Configuration
 
 **Decision:** Convert nixrouter from a reusable NixOS module back to a specific, deployable router configuration with sops-nix secrets.

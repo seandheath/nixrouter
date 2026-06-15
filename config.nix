@@ -61,6 +61,21 @@
     "8.8.8.8"      # Google (fallback)
   ];
 
+  # Split-horizon DNS — internal service names answered locally for any
+  # client using this router as its resolver (LAN + WireGuard VPN). The
+  # names resolve to hydrogen (10.0.0.2), which runs nginx and terminates
+  # TLS with a *.luckyobserver.com Cloudflare DNS-01 wildcard cert. This
+  # keeps self-hosted traffic on the LAN/tunnel instead of egressing.
+  #
+  # Per-subdomain only — do NOT wildcard luckyobserver.com here: it's a
+  # real public zone and a wildcard would clobber vpn.luckyobserver.com
+  # (the WG endpoint A record ddclient points at the public WAN IP).
+  localServices = {
+    host = "10.0.0.2";                 # hydrogen — nginx + wildcard TLS cert
+    domain = "luckyobserver.com";
+    names = [ "nc" "immich" "calibre" "paper" ];  # <name>.<domain>
+  };
+
   # WireGuard remote-access VPN
   # Brings up a wg0 interface on the router so off-network devices can
   # reach brLan over an encrypted UDP tunnel. Other VLANs stay isolated.

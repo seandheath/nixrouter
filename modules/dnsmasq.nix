@@ -86,11 +86,20 @@ in
       # Resolve friendly LAN-only names to router IPs. The /name/ip
       # form covers the bare name and any subdomain, A and AAAA both.
       # Only served on interfaces dnsmasq listens on (brLan, guest,
-      # iot) - kids VLAN uses AGH and doesn't see these.
+      # iot, and wg0 - added by modules/wireguard.nix). kids VLAN uses
+      # AGH and doesn't see these.
+      #
+      # The localServices entries are split-horizon records: public
+      # *.luckyobserver.com names answered locally so they resolve to
+      # hydrogen (cfg.localServices.host) over LAN/VPN instead of
+      # egressing. See config.nix for the rationale and the no-wildcard
+      # caveat (must not shadow vpn.luckyobserver.com).
       address = [
         "/kids.lan/${cfg.lan.address}"     # kids-mode toggle UI (via nginx)
         "/adguard.lan/${cfg.lan.address}"  # AdGuard Home UI (via nginx)
-      ];
+      ] ++ map
+        (n: "/${n}.${cfg.localServices.domain}/${cfg.localServices.host}")
+        cfg.localServices.names;
 
       # --- DNS Configuration ---
       # Don't read /etc/resolv.conf (use upstream servers below)
