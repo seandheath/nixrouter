@@ -70,7 +70,7 @@ Internet <---> [ISP Modem] <---> WAN [Router] LAN <---> [Switch] <---> Clients
 - 10,000 entry DNS cache
 - Split-horizon records: `*.luckyobserver.com` service names
   (`nc`, `immich`, `calibre`, `paper`) resolve locally to hydrogen
-  (`10.0.0.2`) for LAN + VPN clients, keeping self-hosted traffic on the
+  (`10.0.0.10`) for LAN + VPN clients, keeping self-hosted traffic on the
   LAN/tunnel. Hydrogen runs nginx and terminates TLS with the
   `*.luckyobserver.com` wildcard cert (lives in the `nixos` repo, not
   here). Per-subdomain only — never wildcard the public apex.

@@ -3,7 +3,7 @@
 ## 2026-06-15 — Split-Horizon DNS for `*.luckyobserver.com`
 
 **Decision:** Have the router's dnsmasq answer `nc/immich/calibre/paper.luckyobserver.com`
-locally with hydrogen's LAN address (`10.0.0.2`) for all LAN and WireGuard
+locally with hydrogen's LAN address (`10.0.0.10`) for all LAN and WireGuard
 clients. Records are driven by a `localServices` knob in `config.nix` and
 generated into `services.dnsmasq.settings.address`.
 
@@ -15,13 +15,13 @@ generated into `services.dnsmasq.settings.address`.
    names at it — no reverse proxy, ACME, or extra open ports on the router.
 3. Resolves correctly off-network too: WG clients use the router as resolver
    (dnsmasq listens on `wg0`), and `10.0.0.0/24` is in their split-tunnel
-   AllowedIPs, so traffic to `10.0.0.2` flows through the tunnel.
+   AllowedIPs, so traffic to `10.0.0.10` flows through the tunnel.
 
 **Alternatives considered:**
 - Terminate TLS on the router and reverse-proxy to hydrogen's http nginx —
   rejected: splits the cert/proxy across two repos and adds a plaintext
   LAN hop. TLS stays co-located with the services on hydrogen instead.
-- Wildcard `/luckyobserver.com/10.0.0.2` — rejected: it's a real public zone
+- Wildcard `/luckyobserver.com/10.0.0.10` — rejected: it's a real public zone
   and would shadow `vpn.luckyobserver.com` (the WG endpoint A record),
   breaking VPN-endpoint resolution for LAN clients. Per-subdomain only.
 
