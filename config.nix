@@ -100,6 +100,7 @@
     #   { name = "phone"; publicKey = "abc...="; allowedIp = "10.40.0.2/32"; }
     peers = [
       { name = "SeanPhone"; publicKey = "e14NEY0q1hfrsYwN5i0xUr4jzELmgBF2WMmDI00dKzo="; allowedIp = "10.40.0.2/32";}
+      { name = "sulphur";   publicKey = "4ZAwOX6/WKDCm0YBuaNXKhSVej+3pwGEOgFU5Ca2pBM="; allowedIp = "10.40.0.3/32";}
     ];
   };
 
