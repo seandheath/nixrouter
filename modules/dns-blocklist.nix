@@ -16,6 +16,22 @@
 let
   baseBlocklist = "/var/lib/dnsmasq/blocklist-base.hosts";
   baseBlocklistUrl = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
+
+  # Domains to un-block. dnsmasq answers addn-hosts entries authoritatively,
+  # so a server=/domain/# override cannot beat a 0.0.0.0 hosts entry. The only
+  # reliable fix is to strip these lines from the fetched hosts file.
+  #
+  # googleadservices.com is Google's ad-click redirector: shopping/product-ad
+  # links (www.googleadservices.com/pagead/aclk?...) dead-end without it.
+  allowlist = [
+    "googleadservices.com"
+    "www.googleadservices.com"
+  ];
+
+  # ERE alternation of allowlisted hosts with dots escaped, e.g.
+  # "googleadservices\.com|www\.googleadservices\.com".
+  allowlistPattern = lib.concatStringsSep "|"
+    (map (d: lib.replaceStrings [ "." ] [ "\\." ] d) allowlist);
 in
 {
   # Add blocklist to main dnsmasq instance (LAN only)
@@ -30,7 +46,7 @@ in
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
 
-    path = [ pkgs.curl pkgs.coreutils ];
+    path = [ pkgs.curl pkgs.coreutils pkgs.gnugrep ];
 
     script = ''
       set -euo pipefail
@@ -39,8 +55,15 @@ in
 
       # Download base blocklist (ads, trackers, malware)
       curl -sL --fail --retry 3 --max-time 60 \
-        -o ${baseBlocklist}.tmp \
+        -o ${baseBlocklist}.raw \
         "${baseBlocklistUrl}"
+
+      # Strip allowlisted domains. Match on the host field only: whitespace
+      # (the 0.0.0.0 separator) followed by the exact domain at end of line,
+      # so "notgoogleadservices.com" or subdomains aren't removed.
+      grep -viE '[[:space:]](${allowlistPattern})$' \
+        ${baseBlocklist}.raw > ${baseBlocklist}.tmp
+      rm -f ${baseBlocklist}.raw
 
       # Atomically replace old file
       mv ${baseBlocklist}.tmp ${baseBlocklist}
