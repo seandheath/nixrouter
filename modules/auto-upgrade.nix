@@ -73,6 +73,22 @@ in
     after = [ "flake-update.service" ];
   };
 
+  # The auto-upgrade services (flake-update, nixos-upgrade) run as root, but
+  # the flake repo at ${flakePath} is owned by the admin user. Modern
+  # git/libgit2 refuses to open a repo it doesn't own ("detected dubious
+  # ownership"), which makes the git+file:// flake fetch fail with exit 1 -
+  # silently stalling all upgrades. Mark the path safe so root can read it.
+  #
+  # This MUST be declarative: /root is tmpfs under impermanence
+  # (modules/impermanence.nix), so a per-user `git config --global` in
+  # /root/.gitconfig would not survive a reboot - and a successful upgrade
+  # reboots the box. programs.git writes system-wide /etc/gitconfig, which is
+  # in the Nix store and read by every user including root.
+  programs.git = {
+    enable = true;
+    config.safe.directory = [ flakePath ];
+  };
+
   # Garbage collection to prevent disk from filling up
   nix.gc = {
     automatic = true;
