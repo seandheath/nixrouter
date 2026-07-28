@@ -70,9 +70,22 @@ info:
 	nix flake metadata
 
 # Deploy to a remote host (requires SSH access)
-# Usage: make deploy HOST=router.local
+# Usage: make deploy [HOST=router] [USER=admin]
+#
+# Root SSH login is disabled (modules/ssh.nix sets PermitRootLogin=no), so
+# this connects as an unprivileged user and escalates with --use-remote-sudo.
+# Targeting root@ directly fails with "Permission denied (publickey)".
+HOST ?= router
+USER ?= admin
+
 deploy:
-	nixos-rebuild switch --flake .#router --target-host root@$(HOST) --build-host localhost
+	nixos-rebuild switch --flake .#router --target-host $(USER)@$(HOST) --use-remote-sudo --build-host localhost
+
+# Same as deploy, but activates without making the generation the boot
+# default. If it breaks connectivity, power-cycling returns to the last
+# known-good system. Use this first for risky changes on a remote router.
+deploy-test:
+	nixos-rebuild test --flake .#router --target-host $(USER)@$(HOST) --use-remote-sudo --build-host localhost
 
 # Show configuration locations
 options:

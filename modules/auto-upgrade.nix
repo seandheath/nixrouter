@@ -17,9 +17,16 @@ let
   flakePath = "/nix/persist/etc/nixos";
 in
 {
-  # Service to update flake inputs before system upgrade
+  # Service to pull config changes and update flake inputs before the upgrade
+  #
+  # system.autoUpgrade builds from the LOCAL clone at ${flakePath}, so without
+  # an explicit `git pull` here nothing pushed to the git remote ever reaches
+  # this machine -- only flake input bumps would land. That failure is silent:
+  # nixos-upgrade.service still reports success every night while rebuilding
+  # the identical store path. (Observed 2026-07-28: no new generation since
+  # Jul 4 despite nightly "successful" runs.)
   systemd.services.flake-update = {
-    description = "Update flake.lock with latest inputs";
+    description = "Pull config from origin and update flake.lock";
     serviceConfig = {
       Type = "oneshot";
       WorkingDirectory = flakePath;
@@ -31,13 +38,39 @@ in
     };
     path = [ pkgs.nix pkgs.git ];
     script = ''
-      # Only update if directory exists and contains a flake
-      if [[ -f "${flakePath}/flake.nix" ]]; then
-        echo "Updating flake inputs..."
-        nix flake update --commit-lock-file 2>&1 || true
-      else
+      # Fail loudly. The previous version ended every command with `|| true`,
+      # which turned a broken update pipeline into a green systemd unit.
+      set -euo pipefail
+
+      if [[ ! -f "${flakePath}/flake.nix" ]]; then
         echo "No flake found at ${flakePath}, skipping update"
+        exit 0
       fi
+
+      echo "Fetching config from origin..."
+      git fetch --quiet origin
+
+      # flake.lock is a build artifact on this box: `nix flake update` rewrites
+      # it nightly and it is regenerated below regardless, so it is never
+      # committed here. Committing would create a local branch divergence that
+      # breaks every subsequent --ff-only pull. Stash it across the merge so a
+      # dirty lock cannot abort the fast-forward, then restore it -- restoring
+      # the NEWER lock rather than rolling nixpkgs back to origin's committed
+      # one, which may be months behind what this machine actually runs.
+      stashed=""
+      if ! git diff --quiet -- flake.lock; then
+        git stash push --quiet -- flake.lock
+        stashed=1
+      fi
+
+      git merge --ff-only origin/main
+
+      if [[ -n "$stashed" ]]; then
+        git stash pop --quiet
+      fi
+
+      echo "Updating flake inputs..."
+      nix flake update
     '';
   };
 

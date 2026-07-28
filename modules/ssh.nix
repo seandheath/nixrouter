@@ -1,7 +1,7 @@
 # SSH server configuration (hardened)
 #
 # Security measures:
-#   - Key-based authentication only (no passwords)
+#   - Key-based authentication only (keys delivered via sops, see users/admin.nix)
 #   - Root login disabled
 #   - Limited to LAN interface
 #   - Rate limiting via nftables (see firewall.nix)
@@ -21,9 +21,16 @@ in
 
     settings = {
       # --- Authentication ---
-      # Allow password authentication (admin password managed via sops)
-      PasswordAuthentication = true;
-      KbdInteractiveAuthentication = true;
+      # Keys only. The admin user's authorized_keys is delivered via sops
+      # (users/admin.nix wires AuthorizedKeysFile to /run/secrets/admin-ssh-keys),
+      # so password auth is redundant -- it only widens the surface reachable
+      # by anything that lands on brLan, including WireGuard peers.
+      #
+      # Console login still works: users.users.admin.hashedPasswordFile keeps
+      # the sops-managed password for physical/serial access, which is the
+      # recovery path if key auth ever breaks.
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
 
       # Disable root login entirely
       PermitRootLogin = "no";

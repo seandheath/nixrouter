@@ -21,7 +21,13 @@
 {
   # Kernel boot parameters
   boot.kernelParams = [
-    # Disable kernel module loading after boot (can be re-enabled if needed)
+    # NOTE: module loading is NOT disabled here. The line below is commented
+    # out, and nothing else sets kernel.modules_disabled, so runtime module
+    # loading stays available (verified: kernel.modules_disabled = 0).
+    #
+    # Keep it that way unless you audit what still needs to load post-boot --
+    # firewall.service loads ebtable_filter on start for the bridge rules in
+    # modules/firewall.nix, and that would silently fail with modules locked.
     # "module.sig_enforce=1"  # Uncomment if using signed modules only
 
     # Restrict /dev/mem access

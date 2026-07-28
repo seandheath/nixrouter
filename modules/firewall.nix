@@ -41,11 +41,26 @@ in
   # Enable IP forwarding (required for routing)
   boot.kernel.sysctl = {
     "net.ipv4.ip_forward" = 1;
-    "net.ipv6.conf.all.forwarding" = 1;
 
-    # Allow IPv6 autoconfiguration on WAN only
-    # Value 2 = accept RA even when forwarding is enabled
-    # This allows the router to get an IPv6 prefix from upstream
+    # IPv6 forwarding is deliberately OFF.
+    #
+    # Every isolation rule in extraCommands below is `iptables` only -- none of
+    # it is mirrored to ip6tables -- and the ip6tables FORWARD chain is empty
+    # with an ACCEPT policy. There is also no NAT layer incidentally covering
+    # for that on v6. Today the WAN only gets a bare /128 with no prefix
+    # delegation, so no LAN client has a v6 address and nothing is exposed;
+    # forwarding=1 was latent rather than actively dangerous. But it would
+    # become a hole the moment a prefix arrives, so close it explicitly rather
+    # than depending on the ISP not delegating one.
+    #
+    # Re-enabling this is part of the IPv6 work, NOT a prerequisite for it:
+    # mirror the VLAN isolation and Kids DNS rules to ip6tables and set a
+    # default-deny forward policy FIRST, then flip this to 1.
+    "net.ipv6.conf.all.forwarding" = 0;
+
+    # Allow IPv6 autoconfiguration on WAN only, so the router itself can reach
+    # v6-only upstream endpoints. Value 2 = accept RA even when forwarding is
+    # enabled; harmless with forwarding off, and correct if it is turned back on.
     "net.ipv6.conf.${wan}.accept_ra" = 2;
     "net.ipv6.conf.${wan}.autoconf" = 1;
   };

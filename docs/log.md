@@ -349,8 +349,69 @@ DNS, NAT, and WireGuard all verified working.
 
 ---
 
-<!-- TODO:SECURITY — SSH keys for admin user must be added before deployment -->
+## 2026-07-28 — Repair the upgrade pipeline, close IPv6 forwarding, keys-only SSH
+
+**Decision:** Four independent fixes found while auditing after the bridge
+loop: make `flake-update` pull from origin and fail loudly, point `make
+deploy` at a non-root user, disable IPv6 forwarding, and turn off SSH
+password auth.
+
+**Rationale:**
+
+1. **`flake-update` never pulled.** `system.autoUpgrade` builds from the
+   local clone at `/nix/persist/etc/nixos`, and the service only ran `nix
+   flake update` — which updates flake *inputs*, never the repo. Nothing
+   pushed to the remote could reach the router without a manual pull. Worse,
+   every command ended in `|| true`, so the unit reported success regardless.
+   The result was a pipeline that looked healthy every night while doing
+   nothing: no new generation since Jul 4, and `nixos-upgrade` rebuilding the
+   identical store path daily.
+
+   The lock is now treated as a build artifact and never committed on the
+   router — committing it creates a branch divergence that breaks every later
+   `--ff-only` pull, which is how the tree ended up permanently dirty. It is
+   stashed across the merge and restored, so a stale lock in origin can never
+   roll nixpkgs backward on a machine already running something newer.
+
+2. **`make deploy` targeted `root@`,** but `modules/ssh.nix` sets
+   `PermitRootLogin = "no"`, so it could never have worked. Added
+   `--use-remote-sudo` and a `deploy-test` target that activates without
+   changing the boot default — the safe first step for a remote router, since
+   a power cycle undoes it.
+
+3. **IPv6 forwarding was on with no v6 filtering of any kind.** The
+   `ip6tables` FORWARD chain is empty under an ACCEPT policy, and every rule
+   in `firewall.nix` `extraCommands` is `iptables`-only, so none of the VLAN
+   isolation or Kids DNS-bypass blocking applies to v6. Not currently
+   exploitable — the WAN holds only a `/128` with no prefix delegation, so no
+   LAN client has a v6 address — but it is one ISP config change away from
+   exposing every host, with no NAT incidentally in the way.
+
+4. **SSH allowed password auth** while the file header claimed "key-based
+   authentication only". Keys already arrive via sops, so passwords added
+   reach without adding access. Console login still works via
+   `hashedPasswordFile` — that stays the recovery path.
+
+**Alternatives considered:**
+- Having the router commit and push flake.lock back to origin — needs write
+  credentials on an internet-facing box; rejected.
+- Making origin authoritative for the lock and dropping `nix flake update`
+  from the router entirely — cleaner and more reproducible, but input updates
+  would then require a workstation round-trip, defeating auto-upgrade.
+  Reconsider if lock drift keeps causing trouble.
+- Leaving IPv6 forwarding on and adding full ip6tables parity now — correct
+  end state, but that is the IPv6 feature work, not a fix; closing the door
+  is the honest interim.
+- `git pull --rebase` instead of stash + `--ff-only` — silently rewrites
+  local history on a box nobody watches; `--ff-only` fails visibly instead.
+
+---
+
 <!-- TODO:SECURITY — Audit nftables rules for completeness after real-world testing -->
-<!-- TODO:FEATURE — Add IPv6 support (currently IPv4-only) -->
+<!-- TODO:FEATURE — Add IPv6 support (currently IPv4-only). Prerequisite:
+     net.ipv6.conf.all.forwarding is now 0 and the ip6tables FORWARD chain is
+     empty with an ACCEPT policy. Mirror every VLAN isolation rule and the Kids
+     DNS-bypass block to ip6tables, set a default-deny forward policy, and only
+     then re-enable forwarding. There is no NAT layer to fall back on for v6. -->
 <!-- TODO:FEATURE — Add port forwarding examples to firewall.nix -->
 <!-- TODO — Test VM build target with proper networking simulation -->
