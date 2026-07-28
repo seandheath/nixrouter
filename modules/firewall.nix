@@ -27,6 +27,7 @@ let
   interfaces = import ../hosts/router/interfaces.nix;
   wan = interfaces.wan;
   lan = interfaces.lan;
+  wiredLan = interfaces.wiredLan;
   bridge = cfg.bridgeName;
   lanNetwork = cfg.lan.network;
   vlans = cfg.vlans;
@@ -170,6 +171,30 @@ in
 
       iptables -I FORWARD -i ${iotIf} -m state --state NEW -j LOG \
         --log-prefix "IOT-NEW: " --log-level 4
+
+      # ============================================================
+      # VLAN Leak Prevention (wired LAN port)
+      # ============================================================
+      # ${wiredLan} faces an unmanaged switch. Nothing behind it has any
+      # business emitting 802.1Q-tagged frames, and brLan runs with
+      # vlan_filtering=0 -- so a tagged frame arriving here gets flooded
+      # straight out the trunk into the AP's VLAN domain.
+      #
+      # This is exactly what happened during the 2026-07-28 bridge loop:
+      # 96% of frames received on ${wiredLan} were tagged vlan 10/20
+      # (Guest/Kids), i.e. VLAN traffic was transiting the main LAN segment
+      # and defeating the isolation modules/vlans.nix is built to provide.
+      #
+      # Filtering has to happen in the bridge (ebtables) rather than in
+      # iptables: these frames are switched, not routed, so they never reach
+      # the IP hooks. Deletes run first so repeated firewall starts don't
+      # stack duplicate rules.
+      for chain in INPUT FORWARD; do
+        for proto in 802_1Q 0x88A8; do
+          ${pkgs.ebtables}/bin/ebtables -D $chain -i ${wiredLan} -p $proto -j DROP 2>/dev/null || true
+          ${pkgs.ebtables}/bin/ebtables -A $chain -i ${wiredLan} -p $proto -j DROP
+        done
+      done
     '';
 
     # Cleanup rules when firewall stops
@@ -188,6 +213,11 @@ in
       iptables -D FORWARD -i ${kidsIf} -p tcp --dport 853 -j DROP 2>/dev/null || true
       iptables -D FORWARD -i ${iotIf} -m state --state NEW -j LOG \
         --log-prefix "IOT-NEW: " --log-level 4 2>/dev/null || true
+      for chain in INPUT FORWARD; do
+        for proto in 802_1Q 0x88A8; do
+          ${pkgs.ebtables}/bin/ebtables -D $chain -i ${wiredLan} -p $proto -j DROP 2>/dev/null || true
+        done
+      done
     '';
   };
 

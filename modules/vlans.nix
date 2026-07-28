@@ -36,6 +36,27 @@ in
         Name = bridge;
         Kind = "bridge";
       };
+      # Spanning Tree Protocol (IEEE 802.1D).
+      #
+      # brLan has two physical members (trunk to the AP, and the wired NIC to
+      # an unmanaged switch). If those two segments are ever joined downstream
+      # -- e.g. a patch cable from the AP's LAN ports back to the switch -- the
+      # bridge floods broadcasts in a loop with no TTL to stop it. Observed
+      # 2026-07-28: ~15k pps / 61 Mbps of the router's own DHCP replies
+      # circulating, ~2900 "received packet with own address as source
+      # address" kernel warnings per second, and dnsmasq re-answering the same
+      # client several times a second.
+      #
+      # Unmanaged switches forward BPDUs rather than consuming them, so with
+      # STP on the router sees its own BPDU return on the opposite port and
+      # blocks one of them instead of storming.
+      #
+      # Cost: ports take 2x forward_delay (~30s) to reach forwarding after a
+      # link event. Acceptable on a LAN bridge; the alternative is another
+      # unbounded broadcast storm.
+      bridgeConfig = {
+        STP = true;
+      };
     };
 
     # Guest VLAN (10) - isolated internet access

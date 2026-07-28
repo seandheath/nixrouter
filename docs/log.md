@@ -274,6 +274,59 @@ isolated. Public reachability via Cloudflare DDNS at `vpn.luckyobserver.com`.
 
 ---
 
+## 2026-07-28 — Enable STP on brLan and drop tagged frames from the wired LAN port
+
+**Decision:** Turn on Spanning Tree Protocol for `brLan`, and add ebtables
+rules dropping 802.1Q/802.1ad-tagged frames arriving on `enp3s0f1` (the
+wired LAN port facing the unmanaged switch).
+
+**Rationale:** A layer-2 broadcast loop was diagnosed on this date. The two
+`brLan` members — the trunk to the AP and the wired NIC to the unmanaged
+switch — had been joined downstream by a redundant cable. With
+`stp_state=0` there was nothing to break the ring:
+
+- ~15.5k pps / ~61 Mbps of the router's own broadcast DHCP replies
+  circulating, sourced from the trunk port's MAC `00:1b:21:70:7f:57`
+- ~2,900 `brLan: received packet on enp3s0f1 with own address as source
+  address` warnings per second, plus `net_ratelimit` suppressing 14k–22k
+  callbacks per 5s interval
+- FDB flapping: `00:a5:54:03:b9:f2` learned on both ports within 6s
+- dnsmasq answering 5 DISCOVER/OFFER pairs per second to a single client
+- 96% of frames arriving on `enp3s0f1` were tagged vlan 10/20, meaning
+  Guest/Kids traffic was crossing the main LAN segment
+
+Pulling the cable stopped the storm at 14:17:12, confirmed by 90s of zero
+loop messages, zero tagged frames on `enp3s0f1`, and no multi-port FDB
+entries. But cabling is not a durable control — re-plugging that cable, or
+a guest bridging two wall ports, reproduces this exactly. These two changes
+make the failure self-limiting instead.
+
+Unmanaged switches forward BPDUs rather than consuming them, so STP lets the
+router detect its own BPDU returning on the opposite port and block one.
+The ebtables rules are the second layer: they close the VLAN leak
+independently of whether a loop exists, and they have to live in the bridge
+hooks because switched frames never reach iptables.
+
+**Alternatives considered:**
+- Bridge VLAN filtering (`vlan_filtering=1` with per-port VLAN maps) —
+  the more correct long-term model, and it would subsume the ebtables
+  rules. Deferred: it requires reworking the trunk-port-plus-subinterface
+  design in `modules/vlans.nix`, and would have meant a disruptive change
+  during an active incident.
+- RSTP (802.1w) via `mstpd` — ~2s convergence vs. STP's ~30s, but adds a
+  userspace daemon for a two-port bridge that should never be looped in
+  the first place. Not worth the dependency.
+- Leaving it to cabling discipline — rejected; that is what failed.
+- `nft` bridge-family table instead of ebtables — cleaner syntax, but the
+  firewall module is iptables-backed (`networking.nftables.enable` is
+  unset) and this would have needed a separate systemd unit.
+
+**Deployment note:** Not yet applied. Enabling STP transitions both ports
+through listening/learning, blocking traffic for roughly 2x forward_delay
+(~30s), and management SSH runs over `brLan`. Build verified only.
+
+---
+
 <!-- TODO:SECURITY — SSH keys for admin user must be added before deployment -->
 <!-- TODO:SECURITY — Audit nftables rules for completeness after real-world testing -->
 <!-- TODO:FEATURE — Add IPv6 support (currently IPv4-only) -->
