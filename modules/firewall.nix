@@ -189,6 +189,13 @@ in
       # iptables: these frames are switched, not routed, so they never reach
       # the IP hooks. Deletes run first so repeated firewall starts don't
       # stack duplicate rules.
+      #
+      # NOTE when verifying: pkgs.ebtables is ebtables-legacy (v2.0.11), but
+      # `ebtables` on $PATH resolves to iptables' xtables-nft-multi, which
+      # reads the nft bridge family instead. They are separate rule stores --
+      # listing with the wrong one shows an empty table and looks like these
+      # rules failed to apply. Check with the same binary used here:
+      #   sudo ${pkgs.ebtables}/bin/ebtables -L --Lc
       for chain in INPUT FORWARD; do
         for proto in 802_1Q 0x88A8; do
           ${pkgs.ebtables}/bin/ebtables -D $chain -i ${wiredLan} -p $proto -j DROP 2>/dev/null || true

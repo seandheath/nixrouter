@@ -321,9 +321,31 @@ hooks because switched frames never reach iptables.
   firewall module is iptables-backed (`networking.nftables.enable` is
   unset) and this would have needed a separate systemd unit.
 
-**Deployment note:** Not yet applied. Enabling STP transitions both ports
-through listening/learning, blocking traffic for roughly 2x forward_delay
-(~30s), and management SSH runs over `brLan`. Build verified only.
+**Deployment note:** Applied 2026-07-28 14:31 via the router's own flake
+clone at `/nix/persist/etc/nixos` (`make deploy` is unusable — it wants
+`root@` SSH, and root login is disabled). The router's `flake.lock` was 3
+months ahead of the repo's, uncommitted, because auto-upgrade's
+`nix flake update --commit-lock-file` updates it but its commit is swallowed
+by the `|| true` in flake-update.sh. Stashed the lock across the pull so the
+deploy did not silently roll nixpkgs back from `b6018f8` to `bcd464c`.
+
+Post-deploy state: `stp_state 1`, both ports forwarding, router elected root
+bridge (no loop present, so nothing blocks — correct). Four ebtables rules
+live, counters at 0. No failed units, no loop warnings, no dmesg errors;
+DNS, NAT, and WireGuard all verified working.
+
+<!-- TODO — flake-update.sh swallows the exit status of
+     `nix flake update --commit-lock-file` with `|| true`, so a failed commit
+     leaves flake.lock permanently dirty in the working tree and the repo's
+     committed lock drifts behind what the router actually runs. Any deploy
+     that does not preserve the local lock silently downgrades nixpkgs. -->
+<!-- TODO — Consider migrating bridge filtering to bridge VLAN filtering
+     (vlan_filtering=1 with per-port VLAN maps), which would subsume the
+     ebtables rules and remove the legacy-ebtables/nft-backend split. -->
+<!-- TODO — Root cause of the loop was a physical cable joining the AP's LAN
+     side to the unmanaged switch. Label both ends or remove the run. -->
+<!-- TODO — Consider RSTP via mstpd if the ~30s STP convergence on link
+     events becomes disruptive. -->
 
 ---
 
