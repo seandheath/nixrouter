@@ -137,9 +137,18 @@ in
   };
 
   # Banner shown before login
-  services.openssh.banner = ''
+  #
+  # NixOS 26.05 removed the top-level `banner` option in favour of the generic
+  # settings passthrough, and the replacement maps straight onto sshd's own
+  # `Banner` directive -- which takes a FILE PATH, not the text itself. The old
+  # option accepted a string and wrote the file for you; this one does not, so
+  # the content has to be materialised into the store explicitly.
+  # The sshd_config generator rejects a derivation outright ("unsupported type
+  # set"), so interpolate to the store path string rather than passing the
+  # writeText result directly.
+  services.openssh.settings.Banner = "${pkgs.writeText "ssh-banner" ''
     **************************************************************************
     * Authorized access only. All activity may be monitored and recorded.    *
     **************************************************************************
-  '';
+  ''}";
 }

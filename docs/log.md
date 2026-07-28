@@ -407,6 +407,59 @@ password auth.
 
 ---
 
+## 2026-07-28 — Upgrade nixpkgs 25.11 → 26.05 (EOL branch)
+
+**Decision:** Move the `nixpkgs` flake input from `nixos-25.11` to
+`nixos-26.05`. `system.stateVersion` stays at `"25.11"` in both `config.nix`
+and `hosts/router/default.nix`.
+
+**Rationale:** `nixos-25.11` reached end of life; its final commit is
+2026-06-30. The router had gone four weeks with no security updates and would
+have received none ever again. Upstream branch activity at the time of the
+change:
+
+| branch | last commit |
+| --- | --- |
+| `nixos-25.11` (was pinned) | 2026-06-30 |
+| `nixos-26.05` | 2026-07-26 |
+| `nixos-unstable` | 2026-07-26 |
+
+Nothing surfaced this. `nix flake update` exits 0 against a dead branch
+because there is genuinely nothing to fetch, and `nixos-upgrade.service`
+then rebuilds the identical store path and reports success. The only visible
+symptom was the absence of new generations after Jul 4 — an absence, which no
+alert watches for. Hence the explicit EOL note in `flake.nix`.
+
+`stateVersion` is deliberately NOT bumped: it pins stateful defaults chosen
+at install time, and changing it can silently alter on-disk formats for
+services that consult it. It is not a "current release" marker.
+
+**Breaking changes hit, both in `modules/ssh.nix`:**
+1. `services.openssh.banner` was removed in favour of
+   `services.openssh.settings.Banner` — a hard assertion, so it failed the
+   build rather than silently doing nothing.
+2. The replacement is a direct passthrough to sshd's `Banner` directive,
+   which takes a **file path**, not the banner text. The old option wrote the
+   file for you. Content is now materialised with `pkgs.writeText`, and
+   interpolated to a string — the sshd_config generator rejects a derivation
+   outright ("unsupported type set").
+
+**Verified in the built system before deploying:** STP still set on the brLan
+netdev, the bridge ebtables rules still present in `firewall-start`, firewall
+still on the iptables backend (`firewall.service`, not `nftables.service`),
+`PasswordAuthentication no`, `net.ipv6.conf.all.forwarding=0` with IPv4
+forwarding still 1. Kernel moves 6.6.143 → 6.6.145.
+
+**Alternatives considered:**
+- `nixos-unstable` — a router is the wrong place to track unstable; a bad
+  eval takes the household offline.
+- Staying on 25.11 and backporting security fixes by hand — unsustainable
+  for one person, and the whole point of autoUpgrade is not doing that.
+- Bumping `stateVersion` to 26.05 alongside — a common misreading of the
+  option; would risk silent stateful-format changes for no benefit.
+
+---
+
 <!-- TODO:SECURITY — Audit nftables rules for completeness after real-world testing -->
 <!-- TODO:FEATURE — Add IPv6 support (currently IPv4-only). Prerequisite:
      net.ipv6.conf.all.forwarding is now 0 and the ip6tables FORWARD chain is

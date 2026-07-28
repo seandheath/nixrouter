@@ -2,7 +2,14 @@
   description = "NixOS router with ephemeral root and automatic updates";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    # Track the current NixOS stable release.
+    #
+    # nixos-25.11 went end-of-life on 2026-06-30 -- its last commit. The
+    # auto-upgrade machinery kept reporting success against a dead branch,
+    # so the router silently received no security updates for four weeks.
+    # When 26.05 reaches EOL (roughly Dec 2026), bump this again; a stale
+    # value here is invisible from the logs.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     # Declarative disk partitioning
     disko = {
