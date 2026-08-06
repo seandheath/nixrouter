@@ -99,7 +99,12 @@ in
         "/adguard.lan/${cfg.lan.address}"  # AdGuard Home UI (via nginx)
       ] ++ map
         (n: "/${n}.${cfg.localServices.domain}/${cfg.localServices.host}")
-        cfg.localServices.names;
+        cfg.localServices.names
+      ++ [
+        # hydrogen's WireGuard endpoint, resolved to its LAN address for clients that
+        # are already inside. See config.nix `localVpnEndpoint`.
+        "/${cfg.localVpnEndpoint.name}.${cfg.localServices.domain}/${cfg.localVpnEndpoint.host}"
+      ];
 
       # --- DNS Configuration ---
       # Don't read /etc/resolv.conf (use upstream servers below)

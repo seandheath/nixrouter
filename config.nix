@@ -63,17 +63,36 @@
 
   # Split-horizon DNS — internal service names answered locally for any
   # client using this router as its resolver (LAN + WireGuard VPN). The
-  # names resolve to hydrogen (10.0.0.10), which runs nginx and terminates
-  # TLS with a *.luckyobserver.com Cloudflare DNS-01 wildcard cert. This
-  # keeps self-hosted traffic on the LAN/tunnel instead of egressing.
+  # names resolve to hydrogen, which runs nginx and terminates TLS with a
+  # *.luckyobserver.com Cloudflare DNS-01 wildcard cert. This keeps
+  # self-hosted traffic on the LAN/tunnel instead of egressing.
   #
   # Per-subdomain only — do NOT wildcard luckyobserver.com here: it's a
   # real public zone and a wildcard would clobber vpn.luckyobserver.com
   # (the WG endpoint A record ddclient points at the public WAN IP).
   localServices = {
-    host = "10.0.0.10";                # hydrogen — nginx + wildcard TLS cert
+    # 10.41.0.1, not 10.0.0.10, since 2026-08-06: hydrogen stopped serving these on its
+    # LAN address and now answers only on its WireGuard interfaces. A client that holds
+    # no key cannot reach them at either address, so this answer is not what grants
+    # access — it is simply the one that is true for clients that do.
+    host = "10.41.0.1";                # hydrogen's wgfam address
     domain = "luckyobserver.com";
     names = [ "nc" "immich" "calibre" "paper" ];  # <name>.<domain>
+  };
+
+  # Split-horizon record for hydrogen's own WireGuard hubs.
+  #
+  # Devices with a NixOS config probe for hydrogen's LAN address themselves
+  # (modules/family/wg-endpoint.nix in the nixos repo) and never consult this. A phone
+  # cannot: it resolves its endpoint once, with whatever resolver it has, and needs the
+  # answer to differ by where it is. Hence a name that is 10.0.0.10 in here and a CNAME
+  # to vpn.luckyobserver.com (the WAN address, via ddclient) out there.
+  #
+  # Answered on brLan/guest/iot/wg0 but NOT the Kids VLAN, which uses AdGuard -- the
+  # kids' laptops are the ones that do their own probing, so they never need it.
+  localVpnEndpoint = {
+    name = "hub";                      # hub.<domain>
+    host = "10.0.0.10";                # hydrogen's LAN address, where wgfam listens
   };
 
   # Port forwards from WAN to internal hosts (modules/firewall.nix).
