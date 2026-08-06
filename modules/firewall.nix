@@ -188,6 +188,20 @@ in
         --log-prefix "IOT-NEW: " --log-level 4
 
       # ============================================================
+      # Kids VLAN pinholes (config.nix `kidsPinholes`)
+      # ============================================================
+      # Inserted LAST, and at position 1, so they sit above the blanket
+      # `-d 10.0.0.0/8 -j DROP` above -- punching through it is their entire
+      # purpose. See config.nix for why this is narrower than it looks: one
+      # UDP port on one host, carrying an encrypted tunnel that applies its
+      # own per-peer policy at the far end.
+      #
+      # Delete-then-insert so repeated firewall starts cannot stack duplicates.
+      ${lib.concatMapStringsSep "\n      " (p: ''
+        iptables -D FORWARD -i ${kidsIf} -d ${p.host} -p ${p.proto} --dport ${toString p.port} -j ACCEPT 2>/dev/null || true
+        iptables -I FORWARD 1 -i ${kidsIf} -d ${p.host} -p ${p.proto} --dport ${toString p.port} -j ACCEPT'') cfg.kidsPinholes}
+
+      # ============================================================
       # VLAN Leak Prevention (wired LAN port)
       # ============================================================
       # ${wiredLan} faces an unmanaged switch. Nothing behind it has any
@@ -221,6 +235,9 @@ in
 
     # Cleanup rules when firewall stops
     extraStopCommands = ''
+      ${lib.concatMapStringsSep "\n      " (p:
+        "iptables -D FORWARD -i ${kidsIf} -d ${p.host} -p ${p.proto} --dport ${toString p.port} -j ACCEPT 2>/dev/null || true"
+      ) cfg.kidsPinholes}
       iptables -D FORWARD -i ${guestIf} -d 10.0.0.0/8 -j DROP 2>/dev/null || true
       iptables -D FORWARD -i ${guestIf} -d 172.16.0.0/12 -j DROP 2>/dev/null || true
       iptables -D FORWARD -i ${guestIf} -d 192.168.0.0/16 -j DROP 2>/dev/null || true
@@ -247,6 +264,21 @@ in
   networking.nat = {
     enable = true;
     externalInterface = wan;
+
+    # WAN -> internal port forwards (config.nix `portForwards`). Today this is
+    # hydrogen's two WireGuard hubs; see config.nix for what they carry and why
+    # nothing else is forwarded.
+    #
+    # DNAT lands in PREROUTING matching `-i ${wan}`, so these packets are FORWARDed,
+    # never delivered locally — which is why there is no matching entry in the WAN
+    # interface's allowedUDPPorts above, and why a host on an internal VLAN cannot
+    # reach these by dialling our own WAN address (no hairpin). That is what
+    # `kidsPinholes` exists to work around.
+    forwardPorts = map (f: {
+      sourcePort = f.port;
+      proto = f.proto;
+      destination = "${f.destination}:${toString f.port}";
+    }) cfg.portForwards;
     internalInterfaces = [
       bridge
       guestIf
