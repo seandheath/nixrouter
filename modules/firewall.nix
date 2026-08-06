@@ -85,9 +85,15 @@ in
       # Main LAN bridge - allow management services
       ${bridge} = {
         allowedTCPPorts = [
-          22  # SSH
+          # 22 (SSH) moved to the management tunnel on 2026-08-06 -- see
+          # modules/wireguard-mgmt.nix. Administering this router now requires a key,
+          # not merely a cable. RECOVERY: if wgmgt fails to come up there is no remote
+          # way in and you need the console, so verify `wg show wgmgt` before walking
+          # away from a switch that touched it.
           53  # DNS
-          80  # nginx (reverse-proxies http://kids.lan/ + http://adguard.lan/)
+          80  # nginx (kids.lan + adguard.lan) -- deliberately stays: the kids-mode
+              # toggle has to be reachable from any phone on home wifi in ten seconds,
+              # and a phone on hydrogen's wgfam cannot reach this router at all.
         ];
         allowedUDPPorts = [
           53  # DNS

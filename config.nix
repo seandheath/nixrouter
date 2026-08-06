@@ -77,7 +77,11 @@
     # access — it is simply the one that is true for clients that do.
     host = "10.41.0.1";                # hydrogen's wgfam address
     domain = "luckyobserver.com";
-    names = [ "nc" "immich" "calibre" "paper" ];  # <name>.<domain>
+    # KEEP IN STEP with `serviceNames` in the nixos repo, modules/family/peers.nix --
+    # that list feeds both the laptops' networking.hosts and hydrogen's tunnel resolver.
+    # Two flakes cannot share a list without one importing the other, so this is a manual
+    # pairing: adding a service means touching hydrogen's nginx, peers.nix, and here.
+    names = [ "nc" "immich" "calibre" "paper" "mc" ];  # <name>.<domain>
   };
 
   # Split-horizon record for hydrogen's own WireGuard hubs.
@@ -139,6 +143,33 @@
   kidsPinholes = [
     { host = "10.0.0.10"; port = 51821; proto = "udp"; comment = "hydrogen wgfam tunnel"; }
   ];
+
+  # Management tunnel (modules/wireguard-mgmt.nix) -- reaching THIS router from outside.
+  #
+  # Separate from wg0 above, which is general remote access onto brLan. This one reaches
+  # the router and nothing else, and exists so that administering the router never
+  # depends on hydrogen: sulfur peers with both boxes directly rather than routing
+  # through one to get to the other.
+  #
+  # Peer addresses are the ones those devices already use on hydrogen's tunnels, so each
+  # device keeps ONE WireGuard profile with ONE address and simply lists two peers.
+  # WireGuard has no notion of subnet membership -- only per-peer allowedIPs -- so a
+  # 10.41.x device peering here is perfectly ordinary.
+  wireguardMgmt = {
+    enable = true;
+    port = 51823;                      # UDP, opened on WAN
+    address = "10.42.0.3";             # this router, inside the tunnel
+
+    peers = [
+      { name = "sulfur"; publicKey = "B3JEHLQkYPzrbiJAlDcd7fi50j2egYo9enu257jvBSU="; allowedIp = "10.42.0.2/32"; }
+
+      # The parents' phones, for kids.lan and adguard.lan when away from home. Add each
+      # once the device has generated its keypair -- a malformed key fails `wg setconf`
+      # and takes the whole interface down, including sulfur's SSH path.
+      #   { name = "sheath-phone"; publicKey = "..."; allowedIp = "10.42.0.4/32"; }
+      #   { name = "spouse-phone"; publicKey = "..."; allowedIp = "10.41.0.21/32"; }
+    ];
+  };
 
   # WireGuard remote-access VPN
   # Brings up a wg0 interface on the router so off-network devices can

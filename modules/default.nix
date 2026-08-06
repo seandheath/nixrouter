@@ -15,6 +15,7 @@
     ./vlans.nix
     ./firewall.nix
     ./wireguard.nix
+    ./wireguard-mgmt.nix
     ./dnsmasq.nix
     ./dns-blocklist.nix
     ./adguardhome.nix
