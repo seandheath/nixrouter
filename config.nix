@@ -75,7 +75,7 @@
     # LAN address and now answers only on its WireGuard interfaces. A client that holds
     # no key cannot reach them at either address, so this answer is not what grants
     # access — it is simply the one that is true for clients that do.
-    host = "10.41.0.1";                # hydrogen's wgfam address
+    host = "10.41.0.2";                # hydrogen's wgfam address
     domain = "luckyobserver.com";
     # KEEP IN STEP with `serviceNames` in the nixos repo, modules/family/peers.nix --
     # that list feeds both the laptops' networking.hosts and hydrogen's tunnel resolver.
@@ -105,6 +105,8 @@
   # service — Immich, Nextcloud, Paperless, Minecraft, SSH, RustDesk, Syncthing — to a
   # WireGuard interface and opens nothing on its LAN address except SSH. Reaching any of
   # it, from anywhere including this LAN, means holding a key:
+  #
+  # Addressing convention on every tunnel: .1 router, .2 hydrogen, .3 sulfur.
   #
   #   51821  wgfam  10.41.0.0/24  the kids' laptops (and phones, when enrolled):
   #                               https + Minecraft only, peers isolated from each
@@ -158,10 +160,10 @@
   wireguardMgmt = {
     enable = true;
     port = 51823;                      # UDP, opened on WAN
-    address = "10.42.0.3";             # this router, inside the tunnel
+    address = "10.42.0.1";             # this router, inside the tunnel
 
     peers = [
-      { name = "sulfur"; publicKey = "B3JEHLQkYPzrbiJAlDcd7fi50j2egYo9enu257jvBSU="; allowedIp = "10.42.0.2/32"; }
+      { name = "sulfur"; publicKey = "B3JEHLQkYPzrbiJAlDcd7fi50j2egYo9enu257jvBSU="; allowedIp = "10.42.0.3/32"; }
 
       # The parents' phones, for kids.lan and adguard.lan when away from home. Note the
       # addresses come from two different subnets -- that is fine and deliberate: each
