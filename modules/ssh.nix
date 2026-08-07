@@ -20,6 +20,16 @@ in
   services.openssh = {
     enable = true;
 
+    # OFF, and this is load-bearing. openFirewall defaults to true and adds 22 to the
+    # GLOBAL allowedTCPPorts, which applies to every interface -- so removing 22 from
+    # brLan in modules/firewall.nix did precisely nothing until this line existed. The
+    # port stayed reachable from the whole LAN while the config and its comments both
+    # said otherwise.
+    #
+    # An interface-scoped rule cannot subtract from a global one. 22 belongs to the
+    # management tunnel only; modules/wireguard-mgmt.nix is the single place it is opened.
+    openFirewall = false;
+
     settings = {
       # --- Authentication ---
       # Keys only. The admin user's authorized_keys is delivered via sops
