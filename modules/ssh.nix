@@ -13,6 +13,7 @@
 let
   cfg = import ../config.nix;
   lanAddress = cfg.lan.address;
+  mgmt = cfg.wireguardMgmt;
   bridgeDevice = "sys-subsystem-net-devices-${cfg.bridgeName}.device";
 in
 {
@@ -40,7 +41,6 @@ in
 
       # --- Network ---
       # Listen only on LAN interface
-      ListenAddress = lanAddress;
 
       # --- Security Hardening ---
       # Disable TCP forwarding (prevent tunneling)
@@ -120,6 +120,24 @@ in
   # yet, which causes sshd's first bind attempt to fail with
   # "Cannot assign requested address" on cold boot. ExecStartPre
   # polls for the address so the first ExecStart sees it ready.
+  # Bind addresses.
+  #
+  # 22 left brLan on 2026-08-06 (modules/firewall.nix), so the only way in is the
+  # management tunnel -- but sshd bound lanAddress alone, which meant a peer that
+  # reached 10.42.0.3 got a TCP reset from a router with nothing listening there. The
+  # tunnel was fine; nothing was home.
+  #
+  # lanAddress stays bound deliberately: the firewall no longer admits 22 on brLan, so
+  # it is unreachable from the LAN, but it costs nothing and is one less thing to undo
+  # if that rule is ever relaxed for recovery.
+  #
+  # Binding 10.42.0.3 before wgmgt exists works because modules/wireguard-mgmt.nix sets
+  # net.ipv4.ip_nonlocal_bind -- without it this races the interface on cold boot, the
+  # same way the ExecStartPre below exists to stop it racing the bridge address.
+  services.openssh.listenAddresses =
+    [ { addr = lanAddress; } ]
+    ++ lib.optional mgmt.enable { addr = mgmt.address; };
+
   systemd.services.sshd = {
     after = [ bridgeDevice ];
     wants = [ bridgeDevice ];
