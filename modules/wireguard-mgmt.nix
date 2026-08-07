@@ -64,9 +64,18 @@ lib.mkIf mgmt.enable {
   };
 
   networking.firewall.interfaces = {
-    # Listen port on the WAN. Merged with modules/wireguard.nix's entry for 51820 by
-    # the module system's list merging.
+    # The listen port, on the WAN *and* on brLan.
+    #
+    # brLan is not an oversight to be tidied away later: a peer at home dials this
+    # router at 10.0.0.1:${toString mgmt.port}, because the public name resolves to our own WAN
+    # address and a packet sent to it from inside is never DNAT'd (forwardPorts matches
+    # -i wan). WAN-only meant the tunnel simply could not be established from the house.
+    #
+    # Exposing a WireGuard listen port costs nothing. It answers only to peers holding a
+    # registered key and is silent to everything else -- which is exactly why hydrogen
+    # carries 51821/51822 globally rather than per-interface.
     ${wan}.allowedUDPPorts = [ mgmt.port ];
+    ${cfg.bridgeName}.allowedUDPPorts = [ mgmt.port ];
 
     ${wgIf}.allowedTCPPorts = [
       22   # SSH (sulfur) -- see ON SSH REACH above
