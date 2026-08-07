@@ -39,6 +39,20 @@ let
     "khanacademy.org"
     "kastatic.org"
     "kasandbox.org"
+
+    # Nix infrastructure, so the kids' laptops can apply their nightly security
+    # updates on this VLAN. Without these, system.autoUpgrade fails every night --
+    # silently, into a journal nobody reads -- and the laptops drift indefinitely
+    # behind on patches while appearing managed.
+    #
+    # Machine endpoints only, deliberately. `github.com` is NOT here: an entry covers
+    # its subdomains, so allowing it would hand the kids GitHub as a browsable site
+    # and a general-purpose file host. api. and codeload. are what a flake fetch
+    # actually uses -- api. to resolve a ref to a revision, codeload. for the tarball.
+    "cache.nixos.org"
+    "channels.nixos.org"
+    "api.github.com"
+    "codeload.github.com"
   ] + "\n";
 in
 {
