@@ -97,6 +97,12 @@ lib.mkIf mgmt.enable {
     iptables -X ${chain} 2>/dev/null || true
   '';
 
+  # nginx binds ${mgmt.address} explicitly (modules/nginx.nix) and would fail at boot if
+  # the interface is not up yet. Allowing non-local binds is the standard fix and is
+  # robust across wgmgt restarts, which strict ordering is not: a socket bound to an
+  # address that then disappears does not recover on its own.
+  boot.kernel.sysctl."net.ipv4.ip_nonlocal_bind" = 1;
+
   # dnsmasq is bind-interfaces=true, so it must not try to bind wgmgt before it exists.
   # It is deliberately NOT told to listen here: phones resolve through hydrogen's tunnel
   # resolver, which forwards names it does not own back to this router anyway.
