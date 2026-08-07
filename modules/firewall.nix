@@ -85,12 +85,6 @@ in
       # Main LAN bridge - allow management services
       ${bridge} = {
         allowedTCPPorts = [
-          # TEMPORARY -- REMOVE AFTER THE 2026-08-07 RENUMBER IS VERIFIED. The
-          # .1/.2/.3 rotation cannot be staged (the router takes an address hydrogen
-          # still holds), and with SSH on the tunnel only, a mistake mid-rotation means
-          # the console. Delete this line once `ssh admin@10.42.0.1` works.
-          22
-
           # 22 (SSH) moved to the management tunnel on 2026-08-06 -- see
           # modules/wireguard-mgmt.nix. Administering this router now requires a key,
           # not merely a cable. RECOVERY: if wgmgt fails to come up there is no remote
