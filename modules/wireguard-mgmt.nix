@@ -77,10 +77,17 @@ lib.mkIf mgmt.enable {
     ${wan}.allowedUDPPorts = [ mgmt.port ];
     ${cfg.bridgeName}.allowedUDPPorts = [ mgmt.port ];
 
-    ${wgIf}.allowedTCPPorts = [
-      22   # SSH (sulfur) -- see ON SSH REACH above
-      80   # nginx: kids.lan, adguard.lan
-    ];
+    # One attrset, not two paths: a computed attribute name cannot be merged across
+    # separate definitions, so `${wgIf}.allowedTCPPorts` and `${wgIf}.allowedUDPPorts`
+    # as siblings is an eval error rather than a merge.
+    ${wgIf} = {
+      allowedTCPPorts = [
+        22   # SSH (sulfur) -- see ON SSH REACH above
+        53   # DNS, for tunnel clients
+        80   # nginx: kids.lan, adguard.lan
+      ];
+      allowedUDPPorts = [ 53 ];
+    };
   };
 
   # NOTHING FORWARDS OFF THIS TUNNEL.
@@ -112,9 +119,14 @@ lib.mkIf mgmt.enable {
   # address that then disappears does not recover on its own.
   boot.kernel.sysctl."net.ipv4.ip_nonlocal_bind" = 1;
 
-  # dnsmasq is bind-interfaces=true, so it must not try to bind wgmgt before it exists.
-  # It is deliberately NOT told to listen here: phones resolve through hydrogen's tunnel
-  # resolver, which forwards names it does not own back to this router anyway.
+  # THE resolver for tunnel clients. There is exactly one authority for these names and
+  # it is this box -- hydrogen briefly ran a second dnsmasq for the same zone, which is
+  # how split-horizon DNS starts giving two different answers to the same question.
+  #
+  # bind-interfaces means a missing interface at start time is a fatal bind failure, so
+  # the ordering below is required rather than defensive.
+  services.dnsmasq.settings.interface = [ wgIf ];
+
   systemd.services.dnsmasq = {
     after = [ "wireguard-${wgIf}.service" ];
     wants = [ "wireguard-${wgIf}.service" ];

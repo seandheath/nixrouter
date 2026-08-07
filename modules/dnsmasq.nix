@@ -95,8 +95,20 @@ in
       # egressing. See config.nix for the rationale and the no-wildcard
       # caveat (must not shadow vpn.luckyobserver.com).
       address = [
-        "/kids.lan/${cfg.lan.address}"     # kids-mode toggle UI (via nginx)
-        "/adguard.lan/${cfg.lan.address}"  # AdGuard Home UI (via nginx)
+        # The router's own admin UIs, answered at the MANAGEMENT TUNNEL address rather
+        # than at brLan.
+        #
+        # A phone must never be handed 10.0.0.1 as a routable destination: that is its
+        # own default gateway whenever it is on home wifi, and putting it in a tunnel's
+        # AllowedIPs takes the device's network out entirely. So the one answer that
+        # works from everywhere is 10.42.0.3 -- reachable over the tunnel at home and
+        # away alike, and nginx listens there (modules/nginx.nix).
+        #
+        # Consequence, and it is deliberate: kids.lan now requires a tunnel. A device on
+        # the wifi with no key cannot reach the parental-control toggle, which is the
+        # same rule everything else in the house follows.
+        "/kids.lan/${cfg.wireguardMgmt.address}"
+        "/adguard.lan/${cfg.wireguardMgmt.address}"
       ] ++ map
         (n: "/${n}.${cfg.localServices.domain}/${cfg.localServices.host}")
         cfg.localServices.names
