@@ -163,10 +163,14 @@
     peers = [
       { name = "sulfur"; publicKey = "B3JEHLQkYPzrbiJAlDcd7fi50j2egYo9enu257jvBSU="; allowedIp = "10.42.0.2/32"; }
 
-      # The parents' phones, for kids.lan and adguard.lan when away from home. Add each
-      # once the device has generated its keypair -- a malformed key fails `wg setconf`
-      # and takes the whole interface down, including sulfur's SSH path.
-      #   { name = "sheath-phone"; publicKey = "..."; allowedIp = "10.42.0.4/32"; }
+      # The parents' phones, for kids.lan and adguard.lan when away from home. Note the
+      # addresses come from two different subnets -- that is fine and deliberate: each
+      # phone keeps ONE profile with the address hydrogen already knows it by, and
+      # WireGuard cares only about per-peer allowedIPs, never subnet membership.
+      #
+      # Add each only once the device has generated its keypair. A malformed key fails
+      # `wg setconf` and takes the whole interface down, sulfur's SSH path included.
+      { name = "sheath-phone"; publicKey = "3IB2mSQy5JlTNb/JR2717gzNHAoiqACLgIZBiIlGlHE="; allowedIp = "10.42.0.4/32"; }
       #   { name = "spouse-phone"; publicKey = "..."; allowedIp = "10.41.0.21/32"; }
     ];
   };
