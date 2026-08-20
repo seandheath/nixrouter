@@ -98,7 +98,11 @@ in
       filtering.rewrites = [{
         domain = cfg.wireguard.ddnsHostname;
         answer = cfg.lan.address;
-      }] ++ lib.mapAttrsToList (domain: answer: { inherit domain answer; }) cfg.localEndpoints;
+        enabled = true;
+      }] ++ lib.mapAttrsToList (domain: answer: {
+        inherit domain answer;
+        enabled = true;
+      }) cfg.localEndpoints;
 
       # DHCP scope. Static leases are NOT declared here - manage them
       # via the AGH UI (Settings -> DHCP). We rely on yaml-merge's
