@@ -44,6 +44,7 @@
       # Service-specific state
       "/var/lib/dnsmasq"              # DHCP leases (main LAN dnsmasq)
       "/var/lib/kids-mode"            # kids-mode toggle: mode + whitelist
+      "/var/lib/ntopng"               # traffic history and ntopng configuration
       # ddclient state intentionally NOT persisted: nixpkgs flipped the
       # service to DynamicUser=true, which collides with a bind-mounted
       # /var/lib/ddclient (EBUSY on systemd's private-state symlink). The
@@ -91,6 +92,7 @@
     "d /nix/persist/var/lib/systemd/timers 0755 root root -"
     "d /nix/persist/var/lib/dnsmasq 0755 dnsmasq dnsmasq -"
     "d /nix/persist/var/lib/kids-mode 0750 kids-mode kids-mode -"
+    "d /nix/persist/var/lib/ntopng 0700 ntopng ntopng -"
     # AGH runs under DynamicUser; systemd places state at
     # /var/lib/private/AdGuardHome (with a symlink at /var/lib/AdGuardHome).
     # We persist the real /private path. The parent must be root-owned for

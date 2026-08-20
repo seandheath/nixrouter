@@ -10,6 +10,7 @@ Hardened NixOS router configuration with VLAN segmentation, ephemeral root, auto
 - **Automatic updates**: Daily flake updates + system upgrades with scheduled reboots
 - **iptables firewall**: Stateful NAT with inter-VLAN isolation and connection logging
 - **DHCP/DNS**: dnsmasq with per-network DHCP ranges and DNSSEC validation
+- **Network visibility**: ntopng per-device traffic, destinations, protocols, and network/VLAN membership
 - **Hardened kernel**: 40+ sysctl settings, BBR congestion control, module blacklisting
 - **Fast reboots**: kexec for ~10 second restarts
 - **Secrets management**: sops-nix with age encryption
@@ -45,6 +46,21 @@ Internet <---> [ISP Modem] <---> WAN [Router] brLan (10.0.0.1/24)
 | IoT | 30 | 10.30.0.0/24 | .100–.254 | Internet with connection logging |
 
 All DHCP leases are 12 hours. DNS/gateway per-network points to the router's VLAN interface address.
+
+### Network Monitoring
+
+Open `http://monitor.lan/` from the Main LAN or management WireGuard tunnel.
+ntopng shows active devices, traffic volume, application protocols, peers, and
+remote destinations, separated into Main LAN, Guest, Kids, and IoT interfaces.
+On first login, use the default `admin` / `admin` credentials; ntopng requires
+changing the password immediately.
+
+Guest, Kids, and IoT SSIDs are mapped to their VLANs, so a device on one of
+those wireless networks appears under the matching ntopng interface. The AP's
+untagged SSID and wired LAN share `brLan`, so the router cannot distinguish
+those two attachment types. Exact SSID, AP, radio, signal strength, and roaming
+data must come from the separate wireless AP/controller (for example via its
+API or SNMP).
 
 ### Firewall Policy
 
@@ -180,6 +196,7 @@ With ephemeral root, only explicitly listed paths survive reboots:
 | `/nix/persist/var/lib/nixos` | NixOS state |
 | `/nix/persist/var/log` | System logs |
 | `/nix/persist/var/lib/dnsmasq` | DHCP leases + blocklists |
+| `/nix/persist/var/lib/ntopng` | Traffic history and monitoring settings |
 | `/nix/persist/var/lib/ddclient` | DDNS state |
 | `/nix/persist/var/lib/sops-nix` | Age decryption key |
 | `/nix/persist/var/lib/systemd/timers` | Timer state |

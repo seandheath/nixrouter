@@ -19,6 +19,7 @@
     ./dnsmasq.nix
     ./dns-blocklist.nix
     ./adguardhome.nix
+    ./network-monitoring.nix
     ./kids-mode.nix
     ./nginx.nix
     ./ssh.nix

@@ -4,6 +4,7 @@
 #
 #   http://kids.lan/    -> 127.0.0.1:3001  (kids-mode toggle UI)
 #   http://adguard.lan/ -> 127.0.0.1:3000  (AdGuard Home UI)
+#   http://monitor.lan/ -> 127.0.0.1:3002  (ntopng traffic visibility)
 #
 # Both backends bind to loopback only so they're not directly reachable
 # from any network - clients must come through nginx, which only
@@ -60,13 +61,21 @@ in
         proxyWebsockets = true;          # AGH dashboard uses WS for live updates
       };
     };
+
+    virtualHosts."monitor.lan" = {
+      listen = listenAddrs;
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:3002";
+        proxyWebsockets = true;
+      };
+    };
   };
 
   # Order nginx after the backends so the first request after boot
   # doesn't 502. Backends being slow doesn't block nginx startup
   # because of `wants` (soft dep).
   systemd.services.nginx = {
-    after = [ "adguardhome.service" "kids-mode-web.service" ];
-    wants = [ "adguardhome.service" "kids-mode-web.service" ];
+    after = [ "adguardhome.service" "kids-mode-web.service" "ntopng.service" ];
+    wants = [ "adguardhome.service" "kids-mode-web.service" "ntopng.service" ];
   };
 }

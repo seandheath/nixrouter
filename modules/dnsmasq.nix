@@ -109,6 +109,7 @@ in
         # same rule everything else in the house follows.
         "/kids.lan/${cfg.wireguardMgmt.address}"
         "/adguard.lan/${cfg.wireguardMgmt.address}"
+        "/monitor.lan/${cfg.wireguardMgmt.address}"
       ] ++ map
         (n: "/${n}.${cfg.localServices.domain}/${cfg.localServices.host}")
         cfg.localServices.names
