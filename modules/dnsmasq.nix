@@ -110,6 +110,10 @@ in
         "/kids.lan/${cfg.wireguardMgmt.address}"
         "/adguard.lan/${cfg.wireguardMgmt.address}"
         "/monitor.lan/${cfg.wireguardMgmt.address}"
+      ] ++ lib.mapAttrsToList
+        (name: address: "/${name}/${address}")
+        cfg.localEndpoints
+      ++ [
         # Internal clients use the router's LAN address for the same public WireGuard
         # endpoint name; networking.nat.forwardPorts.loopbackIPs reflects 51821/51822.
         "/${cfg.wireguard.ddnsHostname}/${cfg.lan.address}"
