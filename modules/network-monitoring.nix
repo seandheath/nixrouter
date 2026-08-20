@@ -9,7 +9,7 @@
 # wired or on the AP's untagged SSID. Exact AP/radio association requires an AP
 # controller or SNMP integration and cannot be inferred from router traffic.
 
-{ config, ... }:
+{ config, pkgs, ... }:
 
 let
   cfg = import ../config.nix;
@@ -50,6 +50,11 @@ in
       --instance-name=router
     '';
   };
+
+  # Redis 8.8.1 crashes in lua_gc during startup on the router's Skylake CPU,
+  # even with an empty data directory. Valkey provides the same Redis protocol
+  # and executable names and is a drop-in backend for ntopng.
+  services.redis.package = pkgs.valkey;
 
   # Packet capture needs the internal interfaces to exist first. Redis remains
   # ordered by the upstream NixOS ntopng module.

@@ -102,6 +102,10 @@ in
 
       # Enable TCP keepalive (uses kernel settings as fallback)
       TCPKeepAlive = true;
+
+      # Some home Wi-Fi paths mishandle OpenSSH's interactive DSCP marking,
+      # producing connections that complete TCP but stall before the banner.
+      IPQoS = "none";
     };
 
     # Host keys (generated during install, persisted via impermanence)

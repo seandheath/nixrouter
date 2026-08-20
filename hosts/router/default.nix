@@ -87,6 +87,7 @@ in
   environment.systemPackages = with pkgs; [
     vim
     htop
+    tmux
     tcpdump
     ethtool
     iperf3
