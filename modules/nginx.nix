@@ -8,7 +8,7 @@
 #
 # Both backends bind to loopback only so they're not directly reachable
 # from any network - clients must come through nginx, which only
-# listens on the brLan address (gated by interface, not iptables).
+# listens on the brLan address (gated by the central interface rules).
 #
 # Hostnames are resolved by the main dnsmasq instance (modules/dnsmasq.nix),
 # which serves brLan, Guest, and IoT. The Kids VLAN uses AGH for DNS and

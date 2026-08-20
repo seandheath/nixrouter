@@ -32,16 +32,13 @@
 # is a source-matched rule in the INPUT path rather than this interface list.
 #
 # Nothing is forwarded. This tunnel reaches the router and stops.
-{ config, lib, pkgs, ... }:
+{ config, lib, ... }:
 
 let
   cfg = import ../config.nix;
-  interfaces = import ../hosts/router/interfaces.nix;
-  wan = interfaces.wan;
   mgmt = cfg.wireguardMgmt;
 
   wgIf = "wgmgt";
-  chain = "mgmt-forward";
 in
 lib.mkIf mgmt.enable {
   networking.wireguard.interfaces.${wgIf} = {
@@ -62,56 +59,6 @@ lib.mkIf mgmt.enable {
     group = "root";
     mode = "0400";
   };
-
-  networking.firewall.interfaces = {
-    # The listen port, on the WAN *and* on brLan.
-    #
-    # brLan is not an oversight to be tidied away later: a peer at home dials this
-    # router at 10.0.0.1:${toString mgmt.port}, because the public name resolves to our own WAN
-    # address and a packet sent to it from inside is never DNAT'd (forwardPorts matches
-    # -i wan). WAN-only meant the tunnel simply could not be established from the house.
-    #
-    # Exposing a WireGuard listen port costs nothing. It answers only to peers holding a
-    # registered key and is silent to everything else -- which is exactly why hydrogen
-    # carries 51821/51822 globally rather than per-interface.
-    ${wan}.allowedUDPPorts = [ mgmt.port ];
-    ${cfg.bridgeName}.allowedUDPPorts = [ mgmt.port ];
-
-    # One attrset, not two paths: a computed attribute name cannot be merged across
-    # separate definitions, so `${wgIf}.allowedTCPPorts` and `${wgIf}.allowedUDPPorts`
-    # as siblings is an eval error rather than a merge.
-    ${wgIf} = {
-      allowedTCPPorts = [
-        22   # SSH (sulfur) -- see ON SSH REACH above
-        53   # DNS, for tunnel clients
-        80   # nginx: kids.lan, adguard.lan
-      ];
-      allowedUDPPorts = [ 53 ];
-    };
-  };
-
-  # NOTHING FORWARDS OFF THIS TUNNEL.
-  #
-  # Peers' allowedIPs already stop them addressing anything but 10.0.0.1, but that is
-  # configuration on someone else's phone. This is the half enforced here, and it
-  # matters more than usual: this host is the LAN's gateway, so a client that set
-  # AllowedIPs = 0.0.0.0/0 would otherwise be routed straight onto brLan and out.
-  #
-  # Built as its own chain and refilled wholesale rather than appended rule-by-rule --
-  # FORWARD's policy is ACCEPT, so a rule that fails to apply fails OPEN, and a single
-  # missing DROP here is a full LAN bypass.
-  networking.firewall.extraCommands = ''
-    iptables -N ${chain} 2>/dev/null || true
-    iptables -F ${chain}
-    iptables -A ${chain} -i ${wgIf} -j DROP
-    iptables -C FORWARD -j ${chain} 2>/dev/null || iptables -I FORWARD 1 -j ${chain}
-  '';
-
-  networking.firewall.extraStopCommands = ''
-    iptables -D FORWARD -j ${chain} 2>/dev/null || true
-    iptables -F ${chain} 2>/dev/null || true
-    iptables -X ${chain} 2>/dev/null || true
-  '';
 
   # nginx binds ${mgmt.address} explicitly (modules/nginx.nix) and would fail at boot if
   # the interface is not up yet. Allowing non-local binds is the standard fix and is

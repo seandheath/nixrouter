@@ -84,21 +84,6 @@
     names = [ "nc" "immich" "calibre" "paper" "mc" ];  # <name>.<domain>
   };
 
-  # Split-horizon record for hydrogen's own WireGuard hubs.
-  #
-  # Devices with a NixOS config probe for hydrogen's LAN address themselves
-  # (modules/family/wg-endpoint.nix in the nixos repo) and never consult this. A phone
-  # cannot: it resolves its endpoint once, with whatever resolver it has, and needs the
-  # answer to differ by where it is. Hence a name that is 10.0.0.10 in here and a CNAME
-  # to vpn.luckyobserver.com (the WAN address, via ddclient) out there.
-  #
-  # Answered on brLan/guest/iot/wg0 but NOT the Kids VLAN, which uses AdGuard -- the
-  # kids' laptops are the ones that do their own probing, so they never need it.
-  localVpnEndpoint = {
-    name = "hub";                      # hub.<domain>
-    host = "10.0.0.10";                # hydrogen's LAN address, where wgfam listens
-  };
-
   # Port forwards from WAN to internal hosts (modules/firewall.nix).
   #
   # These are hydrogen's own WireGuard hubs. As of 2026-08-06 hydrogen scopes every
@@ -117,33 +102,11 @@
   # This router's own hub on 51820 is unaffected and stays as the way onto brLan when
   # hydrogen is down. It deliberately does NOT reach hydrogen's services.
   #
-  # DNAT happens in PREROUTING on the WAN interface, so the packets are forwarded rather
-  # than delivered locally — no WAN allowedUDPPorts entry is needed or wanted.
+  # networking.nat generates WAN forwarding and reflection for internal clients using the
+  # same vpn.luckyobserver.com endpoint.
   portForwards = [
     { port = 51821; proto = "udp"; destination = "10.0.0.10"; comment = "hydrogen wgfam (family devices)"; }
     { port = 51822; proto = "udp"; destination = "10.0.0.10"; comment = "hydrogen wgadm (sulfur)"; }
-  ];
-
-  # Pinholes in the Kids VLAN's blanket RFC1918 block (modules/firewall.nix).
-  #
-  # THE PROBLEM THIS SOLVES. The kids' laptops belong on the Kids VLAN — that is what
-  # its DNS filtering is for — but they also need Immich, Nextcloud, Paperless and the
-  # Minecraft server on hydrogen, and hydrogen now hands those out over WireGuard only.
-  # The Kids VLAN drops everything to 10.0.0.0/8, so without a pinhole the tunnel cannot
-  # even be established: the laptops would fall back to the public endpoint, which
-  # arrives at our own WAN address from the inside and is not DNAT'd (forwardPorts
-  # matches `-i wan` only). No hairpin, no tunnel, no services.
-  #
-  # This is a good trade rather than a hole in the isolation. What opens is ONE UDP port
-  # on ONE host, carrying nothing but an encrypted tunnel whose far end applies its own
-  # per-peer policy. The laptops still cannot reach anything else on brLan, cannot reach
-  # 10.0.0.1's admin surfaces, cannot reach another VLAN, and still cannot bypass the
-  # DNS filtering — 53 and 853 stay blocked, and the tunnel carries no DNS.
-  #
-  # If a rule here is ever shadowed the failure is closed (no tunnel), which is loud and
-  # safe, so a plain insert is fine — unlike a policy whose absence fails open.
-  kidsPinholes = [
-    { host = "10.0.0.10"; port = 51821; proto = "udp"; comment = "hydrogen wgfam tunnel"; }
   ];
 
   # Management tunnel (modules/wireguard-mgmt.nix) -- reaching THIS router from outside.

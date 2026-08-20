@@ -20,7 +20,7 @@
 #
 # Reference: https://nixos.wiki/wiki/Firewall
 
-{ config, lib, pkgs, ... }:
+{ lib, ... }:
 
 let
   cfg = import ../config.nix;
@@ -36,6 +36,10 @@ let
   guestIf = "${lan}.${toString vlans.guest.id}";
   kidsIf = "${lan}.${toString vlans.kids.id}";
   iotIf = "${lan}.${toString vlans.iot.id}";
+  wg = cfg.wireguard;
+  mgmt = cfg.wireguardMgmt;
+  wgIf = "wg0";
+  mgmtIf = "wgmgt";
 in
 {
   # Enable IP forwarding (required for routing)
@@ -44,18 +48,14 @@ in
 
     # IPv6 forwarding is deliberately OFF.
     #
-    # Every isolation rule in extraCommands below is `iptables` only -- none of
-    # it is mirrored to ip6tables -- and the ip6tables FORWARD chain is empty
-    # with an ACCEPT policy. There is also no NAT layer incidentally covering
-    # for that on v6. Today the WAN only gets a bare /128 with no prefix
+    # Today the WAN only gets a bare /128 with no prefix
     # delegation, so no LAN client has a v6 address and nothing is exposed;
     # forwarding=1 was latent rather than actively dangerous. But it would
     # become a hole the moment a prefix arrives, so close it explicitly rather
     # than depending on the ISP not delegating one.
     #
     # Re-enabling this is part of the IPv6 work, NOT a prerequisite for it:
-    # mirror the VLAN isolation and Kids DNS rules to ip6tables and set a
-    # default-deny forward policy FIRST, then flip this to 1.
+    # assign routed VLAN prefixes and extend the nftables policy first.
     "net.ipv6.conf.all.forwarding" = 0;
 
     # Allow IPv6 autoconfiguration on WAN only, so the router itself can reach
@@ -66,8 +66,11 @@ in
   };
 
   # NixOS declarative firewall
+  networking.nftables.enable = true;
+
   networking.firewall = {
     enable = true;
+    filterForward = true;
 
     # Default: reject packets to closed ports (more polite than drop)
     rejectPackets = false;  # Use drop instead for stealth
@@ -85,11 +88,7 @@ in
       # Main LAN bridge - allow management services
       ${bridge} = {
         allowedTCPPorts = [
-          # 22 (SSH) moved to the management tunnel on 2026-08-06 -- see
-          # modules/wireguard-mgmt.nix. Administering this router now requires a key,
-          # not merely a cable. RECOVERY: if wgmgt fails to come up there is no remote
-          # way in and you need the console, so verify `wg show wgmgt` before walking
-          # away from a switch that touched it.
+          22  # Key-only SSH recovery path when the management tunnel is unavailable
           53  # DNS
           80  # nginx (kids.lan + adguard.lan) -- deliberately stays: the kids-mode
               # toggle has to be reachable from any phone on home wifi in ten seconds,
@@ -98,14 +97,16 @@ in
         allowedUDPPorts = [
           53  # DNS
           67  # DHCP server
-        ];
+        ] ++ lib.optional mgmt.enable mgmt.port;
       };
 
       # WAN interface - nothing open
       # Only established/related connections allowed (handled automatically)
       ${wan} = {
         allowedTCPPorts = [ ];
-        allowedUDPPorts = [ ];
+        allowedUDPPorts =
+          lib.optional wg.enable wg.port
+          ++ lib.optional mgmt.enable mgmt.port;
       };
 
       # Guest VLAN - DHCP and DNS only, no SSH
@@ -140,129 +141,47 @@ in
           67   # DHCP server
         ];
       };
+
+      ${wgIf} = lib.mkIf wg.enable {
+        allowedTCPPorts = [ 22 53 80 443 ];
+        allowedUDPPorts = [ 53 ];
+      };
+
+      ${mgmtIf} = lib.mkIf mgmt.enable {
+        allowedTCPPorts = [ 22 53 80 ];
+        allowedUDPPorts = [ 53 ];
+      };
     };
 
-    # Extra iptables rules for inter-VLAN isolation and logging
-    # These run after the NixOS firewall rules
-    extraCommands = ''
-      # ============================================================
-      # Inter-VLAN Isolation
-      # ============================================================
-      # Block VLANs from reaching any RFC1918 private address space
-      # This prevents Guest/Kids/IoT from reaching:
-      #   - Main LAN (10.0.0.0/24)
-      #   - Other VLANs (10.10.0.0/24, 10.20.0.0/24, 10.30.0.0/24)
-      #   - Router itself on any internal interface
-      #
-      # Traffic to WAN (internet) is still allowed via NAT
+    # Default-drop forwarding means VLANs and wgmgt reach nothing unless listed here.
+    # mkBefore keeps the Kids DNS denial and IoT log ahead of the WAN accepts generated
+    # by networking.nat. DNAT forwards are admitted by the NixOS firewall itself.
+    extraForwardRules = lib.mkBefore ''
+      iifname "${kidsIf}" udp dport 53 drop comment "Kids must use filtered DNS"
+      iifname "${kidsIf}" tcp dport { 53, 853 } drop comment "Kids must use filtered DNS"
+      iifname "${iotIf}" ct state new log prefix "IOT-NEW: " level info
 
-      # Guest VLAN: internet only
-      iptables -I FORWARD -i ${guestIf} -d 10.0.0.0/8 -j DROP
-      iptables -I FORWARD -i ${guestIf} -d 172.16.0.0/12 -j DROP
-      iptables -I FORWARD -i ${guestIf} -d 192.168.0.0/16 -j DROP
-
-      # Kids VLAN: internet only
-      iptables -I FORWARD -i ${kidsIf} -d 10.0.0.0/8 -j DROP
-      iptables -I FORWARD -i ${kidsIf} -d 172.16.0.0/12 -j DROP
-      iptables -I FORWARD -i ${kidsIf} -d 192.168.0.0/16 -j DROP
-
-      # IoT VLAN: internet only
-      iptables -I FORWARD -i ${iotIf} -d 10.0.0.0/8 -j DROP
-      iptables -I FORWARD -i ${iotIf} -d 172.16.0.0/12 -j DROP
-      iptables -I FORWARD -i ${iotIf} -d 192.168.0.0/16 -j DROP
-
-      # ============================================================
-      # DNS Bypass Prevention (Kids VLAN)
-      # ============================================================
-      # Block outbound DNS/DoT to prevent bypassing content filtering
-      # Kids network must use the router's filtered DNS
-
-      # Block DNS over UDP/TCP (port 53) to any external server
-      iptables -I FORWARD -i ${kidsIf} -p udp --dport 53 -j DROP
-      iptables -I FORWARD -i ${kidsIf} -p tcp --dport 53 -j DROP
-
-      # Block DNS over TLS (port 853)
-      iptables -I FORWARD -i ${kidsIf} -p tcp --dport 853 -j DROP
-
-      # ============================================================
-      # IoT Connection Logging
-      # ============================================================
-      # Log all new connections from IoT network for monitoring
-      # Logs appear in journald: journalctl -k | grep "IOT-NEW:"
-
-      iptables -I FORWARD -i ${iotIf} -m state --state NEW -j LOG \
-        --log-prefix "IOT-NEW: " --log-level 4
-
-      # ============================================================
-      # Kids VLAN pinholes (config.nix `kidsPinholes`)
-      # ============================================================
-      # Inserted LAST, and at position 1, so they sit above the blanket
-      # `-d 10.0.0.0/8 -j DROP` above -- punching through it is their entire
-      # purpose. See config.nix for why this is narrower than it looks: one
-      # UDP port on one host, carrying an encrypted tunnel that applies its
-      # own per-peer policy at the far end.
-      #
-      # Delete-then-insert so repeated firewall starts cannot stack duplicates.
-      ${lib.concatMapStringsSep "\n      " (p: ''
-        iptables -D FORWARD -i ${kidsIf} -d ${p.host} -p ${p.proto} --dport ${toString p.port} -j ACCEPT 2>/dev/null || true
-        iptables -I FORWARD 1 -i ${kidsIf} -d ${p.host} -p ${p.proto} --dport ${toString p.port} -j ACCEPT'') cfg.kidsPinholes}
-
-      # ============================================================
-      # VLAN Leak Prevention (wired LAN port)
-      # ============================================================
-      # ${wiredLan} faces an unmanaged switch. Nothing behind it has any
-      # business emitting 802.1Q-tagged frames, and brLan runs with
-      # vlan_filtering=0 -- so a tagged frame arriving here gets flooded
-      # straight out the trunk into the AP's VLAN domain.
-      #
-      # This is exactly what happened during the 2026-07-28 bridge loop:
-      # 96% of frames received on ${wiredLan} were tagged vlan 10/20
-      # (Guest/Kids), i.e. VLAN traffic was transiting the main LAN segment
-      # and defeating the isolation modules/vlans.nix is built to provide.
-      #
-      # Filtering has to happen in the bridge (ebtables) rather than in
-      # iptables: these frames are switched, not routed, so they never reach
-      # the IP hooks. Deletes run first so repeated firewall starts don't
-      # stack duplicate rules.
-      #
-      # NOTE when verifying: pkgs.ebtables is ebtables-legacy (v2.0.11), but
-      # `ebtables` on $PATH resolves to iptables' xtables-nft-multi, which
-      # reads the nft bridge family instead. They are separate rule stores --
-      # listing with the wrong one shows an empty table and looks like these
-      # rules failed to apply. Check with the same binary used here:
-      #   sudo ${pkgs.ebtables}/bin/ebtables -L --Lc
-      for chain in INPUT FORWARD; do
-        for proto in 802_1Q 0x88A8; do
-          ${pkgs.ebtables}/bin/ebtables -D $chain -i ${wiredLan} -p $proto -j DROP 2>/dev/null || true
-          ${pkgs.ebtables}/bin/ebtables -A $chain -i ${wiredLan} -p $proto -j DROP
-        done
-      done
+      iifname "${bridge}" accept comment "Main LAN may route to internal networks"
+      ${lib.optionalString wg.enable ''
+        iifname "${wgIf}" oifname "${bridge}" accept comment "Remote VPN may reach main LAN"
+      ''}
     '';
+  };
 
-    # Cleanup rules when firewall stops
-    extraStopCommands = ''
-      ${lib.concatMapStringsSep "\n      " (p:
-        "iptables -D FORWARD -i ${kidsIf} -d ${p.host} -p ${p.proto} --dport ${toString p.port} -j ACCEPT 2>/dev/null || true"
-      ) cfg.kidsPinholes}
-      iptables -D FORWARD -i ${guestIf} -d 10.0.0.0/8 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${guestIf} -d 172.16.0.0/12 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${guestIf} -d 192.168.0.0/16 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${kidsIf} -d 10.0.0.0/8 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${kidsIf} -d 172.16.0.0/12 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${kidsIf} -d 192.168.0.0/16 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${iotIf} -d 10.0.0.0/8 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${iotIf} -d 172.16.0.0/12 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${iotIf} -d 192.168.0.0/16 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${kidsIf} -p udp --dport 53 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${kidsIf} -p tcp --dport 53 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${kidsIf} -p tcp --dport 853 -j DROP 2>/dev/null || true
-      iptables -D FORWARD -i ${iotIf} -m state --state NEW -j LOG \
-        --log-prefix "IOT-NEW: " --log-level 4 2>/dev/null || true
-      for chain in INPUT FORWARD; do
-        for proto in 802_1Q 0x88A8; do
-          ${pkgs.ebtables}/bin/ebtables -D $chain -i ${wiredLan} -p $proto -j DROP 2>/dev/null || true
-        done
-      done
+  # Layer-2 guard for the unmanaged-switch port, atomically managed by the
+  # NixOS nftables service.
+  networking.nftables.tables.vlan-guard = {
+    family = "bridge";
+    content = ''
+      chain input {
+        type filter hook input priority filter; policy accept;
+        iifname "${wiredLan}" ether type { 0x8100, 0x88a8 } drop
+      }
+
+      chain forward {
+        type filter hook forward priority filter; policy accept;
+        iifname "${wiredLan}" ether type { 0x8100, 0x88a8 } drop
+      }
     '';
   };
 
@@ -275,15 +194,13 @@ in
     # hydrogen's two WireGuard hubs; see config.nix for what they carry and why
     # nothing else is forwarded.
     #
-    # DNAT lands in PREROUTING matching `-i ${wan}`, so these packets are FORWARDed,
-    # never delivered locally — which is why there is no matching entry in the WAN
-    # interface's allowedUDPPorts above, and why a host on an internal VLAN cannot
-    # reach these by dialling our own WAN address (no hairpin). That is what
-    # `kidsPinholes` exists to work around.
+    # NixOS supplies WAN DNAT. The explicit rules above supply matching hairpin DNAT and
+    # return-path masquerading for brLan and the Kids VLAN.
     forwardPorts = map (f: {
       sourcePort = f.port;
       proto = f.proto;
       destination = "${f.destination}:${toString f.port}";
+      loopbackIPs = [ cfg.lan.address ];
     }) cfg.portForwards;
     internalInterfaces = [
       bridge

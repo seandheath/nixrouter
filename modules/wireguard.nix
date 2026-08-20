@@ -26,20 +26,11 @@
 #   https://www.wireguard.com/quickstart/
 #   https://nixos.wiki/wiki/WireGuard
 
-{ config, lib, pkgs, ... }:
+{ config, lib, ... }:
 
 let
   cfg = import ../config.nix;
-  interfaces = import ../hosts/router/interfaces.nix;
-  wan = interfaces.wan;
-  lan = interfaces.lan;
-  vlans = cfg.vlans;
   wg = cfg.wireguard;
-
-  # VLAN interface names (on the trunk port) - used for FORWARD drops
-  guestIf = "${lan}.${toString vlans.guest.id}";
-  kidsIf = "${lan}.${toString vlans.kids.id}";
-  iotIf = "${lan}.${toString vlans.iot.id}";
 
   wgIf = "wg0";
 in
@@ -67,44 +58,6 @@ lib.mkIf wg.enable {
     group = "root";
     mode = "0400";
   };
-
-  # ---------------------------------------------------------------------
-  # Firewall
-  # ---------------------------------------------------------------------
-  # Module-system list merging: these settings are appended to the
-  # interface blocks already defined in modules/firewall.nix.
-  networking.firewall.interfaces = {
-    # Open the WireGuard listen port on the WAN interface
-    ${wan}.allowedUDPPorts = [ wg.port ];
-
-    # Allow VPN clients to reach router-local services
-    ${wgIf} = {
-      allowedTCPPorts = [
-        22  # SSH
-        53  # DNS (dnsmasq)
-        80  # nginx (kids.lan, adguard.lan)
-      ];
-      allowedUDPPorts = [
-        53  # DNS
-      ];
-    };
-  };
-
-  # Block forwarding from the VPN into Guest/Kids/IoT VLANs.
-  # brLan is reachable by default (FORWARD policy is permissive); these
-  # drops keep the existing per-VLAN isolation intact for VPN clients too.
-  networking.firewall.extraCommands = ''
-    # WireGuard isolation: VPN reaches brLan only, never other VLANs
-    iptables -I FORWARD -i ${wgIf} -o ${guestIf} -j DROP
-    iptables -I FORWARD -i ${wgIf} -o ${kidsIf}  -j DROP
-    iptables -I FORWARD -i ${wgIf} -o ${iotIf}   -j DROP
-  '';
-
-  networking.firewall.extraStopCommands = ''
-    iptables -D FORWARD -i ${wgIf} -o ${guestIf} -j DROP 2>/dev/null || true
-    iptables -D FORWARD -i ${wgIf} -o ${kidsIf}  -j DROP 2>/dev/null || true
-    iptables -D FORWARD -i ${wgIf} -o ${iotIf}   -j DROP 2>/dev/null || true
-  '';
 
   # ---------------------------------------------------------------------
   # DNS over the tunnel

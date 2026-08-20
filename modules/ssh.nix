@@ -20,14 +20,8 @@ in
   services.openssh = {
     enable = true;
 
-    # OFF, and this is load-bearing. openFirewall defaults to true and adds 22 to the
-    # GLOBAL allowedTCPPorts, which applies to every interface -- so removing 22 from
-    # brLan in modules/firewall.nix did precisely nothing until this line existed. The
-    # port stayed reachable from the whole LAN while the config and its comments both
-    # said otherwise.
-    #
-    # An interface-scoped rule cannot subtract from a global one. 22 belongs to the
-    # management tunnel only; modules/wireguard-mgmt.nix is the single place it is opened.
+    # Keep firewall ownership in modules/firewall.nix. SSH is admitted only on brLan
+    # (the recovery path) and wgmgt (normal remote administration), never globally.
     openFirewall = false;
 
     settings = {
@@ -132,14 +126,8 @@ in
   # polls for the address so the first ExecStart sees it ready.
   # Bind addresses.
   #
-  # 22 left brLan on 2026-08-06 (modules/firewall.nix), so the only way in is the
-  # management tunnel -- but sshd bound lanAddress alone, which meant a peer that
-  # reached 10.42.0.3 got a TCP reset from a router with nothing listening there. The
-  # tunnel was fine; nothing was home.
-  #
-  # lanAddress stays bound deliberately: the firewall no longer admits 22 on brLan, so
-  # it is unreachable from the LAN, but it costs nothing and is one less thing to undo
-  # if that rule is ever relaxed for recovery.
+  # Bind both the LAN recovery address and the management-tunnel address. The firewall
+  # admits each only on its matching interface.
   #
   # Binding 10.42.0.3 before wgmgt exists works because modules/wireguard-mgmt.nix sets
   # net.ipv4.ip_nonlocal_bind -- without it this races the interface on cold boot, the

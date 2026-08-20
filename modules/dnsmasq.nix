@@ -110,14 +110,13 @@ in
         "/kids.lan/${cfg.wireguardMgmt.address}"
         "/adguard.lan/${cfg.wireguardMgmt.address}"
         "/monitor.lan/${cfg.wireguardMgmt.address}"
+        # Internal clients use the router's LAN address for the same public WireGuard
+        # endpoint name; networking.nat.forwardPorts.loopbackIPs reflects 51821/51822.
+        "/${cfg.wireguard.ddnsHostname}/${cfg.lan.address}"
       ] ++ map
         (n: "/${n}.${cfg.localServices.domain}/${cfg.localServices.host}")
         cfg.localServices.names
-      ++ [
-        # hydrogen's WireGuard endpoint, resolved to its LAN address for clients that
-        # are already inside. See config.nix `localVpnEndpoint`.
-        "/${cfg.localVpnEndpoint.name}.${cfg.localServices.domain}/${cfg.localVpnEndpoint.host}"
-      ];
+      ;
 
       # --- DNS Configuration ---
       # Don't read /etc/resolv.conf (use upstream servers below)

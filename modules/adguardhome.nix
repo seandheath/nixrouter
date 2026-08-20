@@ -95,6 +95,11 @@ in
         # the toggle service has a chance to reconcile.
       };
 
+      filtering.rewrites = [{
+        domain = cfg.wireguard.ddnsHostname;
+        answer = cfg.lan.address;
+      }];
+
       # DHCP scope. Static leases are NOT declared here - manage them
       # via the AGH UI (Settings -> DHCP). We rely on yaml-merge's
       # deep-merge of maps to leave UI-managed fields like static_leases
