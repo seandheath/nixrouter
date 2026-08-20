@@ -72,6 +72,16 @@ in
     enable = true;
     filterForward = true;
 
+    # WireGuard authenticates before it exposes any network service, so its handshake
+    # sockets do not benefit from interface scoping. Keeping these global also matters
+    # for vpn.luckyobserver.com on the LAN: the same endpoint must work whether nftables
+    # reports an untagged frame against brLan, a bridge member, or the WAN interface.
+    # Declare each listener exactly once; every ordinary service remains interface-bound
+    # below, and forwarded 51821/51822 still require the DNAT rules in networking.nat.
+    allowedUDPPorts =
+      lib.optional wg.enable wg.port
+      ++ lib.optional mgmt.enable mgmt.port;
+
     # Default: reject packets to closed ports (more polite than drop)
     rejectPackets = false;  # Use drop instead for stealth
 
@@ -97,16 +107,14 @@ in
         allowedUDPPorts = [
           53  # DNS
           67  # DHCP server
-        ] ++ lib.optional mgmt.enable mgmt.port;
+        ];
       };
 
       # WAN interface - nothing open
       # Only established/related connections allowed (handled automatically)
       ${wan} = {
         allowedTCPPorts = [ ];
-        allowedUDPPorts =
-          lib.optional wg.enable wg.port
-          ++ lib.optional mgmt.enable mgmt.port;
+        allowedUDPPorts = [ ];
       };
 
       # Guest VLAN - DHCP and DNS only, no SSH
