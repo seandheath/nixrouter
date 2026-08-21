@@ -51,10 +51,16 @@ in
     '';
   };
 
-  # Redis 8.8.1 crashes in lua_gc during startup on the router's Skylake CPU,
-  # even with an empty data directory. Valkey provides the same Redis protocol
-  # and executable names and is a drop-in backend for ntopng.
-  services.redis.package = pkgs.valkey;
+  # Redis and Valkey both crash during startup on this Skylake router when built with
+  # jemalloc. Keep following nixpkgs' current Valkey, but use libc's allocator; ntopng's
+  # small local datastore does not benefit materially from jemalloc.
+  services.redis.package = pkgs.valkey.overrideAttrs (old: {
+    makeFlags = old.makeFlags ++ [ "MALLOC=libc" ];
+    # The upstream integration suite takes many minutes and stalled in the Nix sandbox;
+    # the router activation below performs the relevant executable, PING, and ntopng checks.
+    doCheck = false;
+    doInstallCheck = false;
+  });
 
   # Packet capture needs the internal interfaces to exist first. Redis remains
   # ordered by the upstream NixOS ntopng module.
