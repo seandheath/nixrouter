@@ -143,7 +143,7 @@
       #
       # Add each only once the device has generated its keypair. A malformed key fails
       # `wg setconf` and takes the whole interface down, sulfur's SSH path included.
-      { name = "sheath-phone"; publicKey = "3IB2mSQy5JlTNb/JR2717gzNHAoiqACLgIZBiIlGlHE="; allowedIp = "10.42.0.4/32"; }
+      { name = "sheath-phone"; publicKey = "T1JupspOSEWuBKZrPuwSWy7Hdo9vu84grjU3f7jEQmQ="; allowedIp = "10.42.0.4/32"; }
       { name = "spouse-phone"; publicKey = "PrXXMEAU1mVsZLz/0CLZ14mXYJqwEppaV5OUEr0c504="; allowedIp = "10.41.0.21/32"; }
     ];
   };
