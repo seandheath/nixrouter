@@ -1,5 +1,19 @@
 # Decision Log
 
+## 2026-08-28 — Restore the Kids VLAN wgfam pinhole
+
+**Decision:** Admit only `10.20.0.0/24 → 10.0.0.10:51821/udp` through the
+default-drop forward chain. AdGuard deliberately resolves
+`hydrogen.luckyobserver.com` to hydrogen's LAN address on the Kids VLAN, so the
+packet is routed directly and never receives the DNAT status that admits WAN and
+hairpin port forwards.
+
+The nftables consolidation in `8404adc` removed the explicit `kidsPinholes`
+policy introduced by `9647961`. The result failed closed: family laptops sent
+WireGuard initiations but hydrogen never received them. Restoring the generated
+one-host, one-port rule preserves VLAN isolation; WireGuard still authenticates
+the peer and applies its own per-peer policy before exposing any service.
+
 ## 2026-06-15 — Split-Horizon DNS for `*.luckyobserver.com`
 
 **Decision:** Have the router's dnsmasq answer `nc/immich/calibre/paper.luckyobserver.com`

@@ -117,6 +117,14 @@
     { port = 51822; proto = "udp"; destination = "10.0.0.10"; comment = "hydrogen wgadm (sulfur)"; }
   ];
 
+  # Exceptions to the Kids VLAN's default-deny forwarding policy. AdGuard resolves the
+  # family WireGuard endpoint directly to hydrogen's LAN address, so this packet is not
+  # DNATed and must be admitted explicitly. WireGuard authenticates it before exposing any
+  # service; no other Kids-to-LAN traffic is opened.
+  kidsPinholes = [
+    { host = "10.0.0.10"; port = 51821; proto = "udp"; comment = "hydrogen wgfam tunnel"; }
+  ];
+
   # Management tunnel (modules/wireguard-mgmt.nix) -- reaching THIS router from outside.
   #
   # Separate from wg0 above, which is general remote access onto brLan. This one reaches

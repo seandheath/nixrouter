@@ -167,6 +167,9 @@ in
     extraForwardRules = lib.mkBefore ''
       iifname "${kidsIf}" udp dport 53 drop comment "Kids must use filtered DNS"
       iifname "${kidsIf}" tcp dport { 53, 853 } drop comment "Kids must use filtered DNS"
+      ${lib.concatMapStringsSep "\n      " (p:
+        ''iifname "${kidsIf}" ip daddr ${p.host} ${p.proto} dport ${toString p.port} accept comment "${p.comment}"''
+      ) cfg.kidsPinholes}
       iifname "${iotIf}" ct state new log prefix "IOT-NEW: " level info
 
       iifname "${bridge}" accept comment "Main LAN may route to internal networks"
