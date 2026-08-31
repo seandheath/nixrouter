@@ -84,12 +84,14 @@
     names = [ "nc" "immich" "calibre" "paper" "mc" ];  # <name>.<domain>
   };
 
-  # Device-specific WireGuard endpoint names. Public DNS points both names at the dynamic
-  # WAN address; inside the house they resolve directly to the device that owns the port.
+  # Names that need an address other than localServices.host. Device endpoint names resolve
+  # directly to the device that owns the port; the marketplace UI resolves to hydrogen's
+  # administrative tunnel because nginx deliberately rejects it on wgfam.
   # Keep these in both resolver paths (dnsmasq and the kids VLAN's AdGuard Home).
   localEndpoints = {
     "hydrogen.luckyobserver.com" = "10.0.0.10";
     "router.luckyobserver.com" = "10.0.0.1";
+    "marketplace.luckyobserver.com" = "10.42.0.2";
   };
 
   # Port forwards from WAN to internal hosts (modules/firewall.nix).
