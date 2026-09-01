@@ -56,17 +56,23 @@ in
     acmeEmail = "se@nheath.com";
     tailnetDomain = "tail.luckyobserver.com";
     owner = "home";
-    dnsRecords = map (name: {
-      inherit name;
-      type = "A";
-      value = "10.0.0.10";
-    }) [
-      "nc.luckyobserver.com"
-      "immich.luckyobserver.com"
-      "paper.luckyobserver.com"
-      "calibre.luckyobserver.com"
-      "mc.luckyobserver.com"
-    ];
+    dnsRecords =
+      map (name: {
+        inherit name;
+        type = "A";
+        value = "10.0.0.10";
+      }) [
+        "nc.luckyobserver.com"
+        "immich.luckyobserver.com"
+        "paper.luckyobserver.com"
+        "calibre.luckyobserver.com"
+        "mc.luckyobserver.com"
+      ]
+      ++ [{
+        name = "marketplace.luckyobserver.com";
+        type = "A";
+        value = "100.64.0.3";
+      }];
     policy = {
       # Tagged one-time pre-auth keys assign the non-human node identities.
       # Avoid naming home@ here so a brand-new database can load the policy
