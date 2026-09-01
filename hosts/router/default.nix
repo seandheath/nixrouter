@@ -47,6 +47,69 @@ in
     useDHCP = false;
   };
 
+  # Headscale is reachable before the tailnet exists; tailscaled is a separate
+  # node on that control plane and advertises only the trusted home LAN.
+  fleet.headscaleServer = {
+    enable = true;
+    hostname = "headscale.luckyobserver.com";
+    publicInterface = wan;
+    acmeEmail = "se@nheath.com";
+    tailnetDomain = "tail.luckyobserver.com";
+    owner = "home";
+    dnsRecords = map (name: {
+      inherit name;
+      type = "A";
+      value = "10.0.0.10";
+    }) [
+      "nc.luckyobserver.com"
+      "immich.luckyobserver.com"
+      "paper.luckyobserver.com"
+      "calibre.luckyobserver.com"
+      "mc.luckyobserver.com"
+    ];
+    policy = {
+      # Tagged one-time pre-auth keys assign the non-human node identities.
+      # Avoid naming home@ here so a brand-new database can load the policy
+      # before headscale-bootstrap-owner creates the personal-device user.  An
+      # empty owner group defines the tags without letting an interactive node
+      # self-assign one; only an administrator-issued tagged key can do that.
+      groups."group:preauth-only" = [ ];
+      tagOwners = {
+        "tag:admin" = [ "group:preauth-only" ];
+        "tag:family" = [ "group:preauth-only" ];
+        "tag:server" = [ "group:preauth-only" ];
+        "tag:subnet-router" = [ "group:preauth-only" ];
+      };
+      autoApprovers.routes."10.0.0.0/24" = [ "tag:subnet-router" ];
+      acls = [
+        {
+          action = "accept";
+          src = [ "autogroup:member" "tag:admin" ];
+          dst = [ "*:*" ];
+        }
+        {
+          action = "accept";
+          src = [ "tag:family" ];
+          dst = [ "10.0.0.10:22,80,443,2456-2458,25565-25575" ];
+        }
+      ];
+    };
+  };
+
+  fleet.tailscaleClient = {
+    enable = true;
+    acceptRoutes = false;
+    tags = [ "tag:subnet-router" ];
+    allowedTCPPorts = [ 22 53 80 443 ];
+    allowedUDPPorts = [ 53 ];
+  };
+
+  fleet.tailscaleSubnetRouter = {
+    enable = true;
+    routes = [ cfg.lan.network ];
+    lanInterface = cfg.bridgeName;
+  };
+
   # WAN interface: DHCP from upstream ISP
   systemd.network.networks."10-wan" = {
     matchConfig.Name = wan;

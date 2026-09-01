@@ -16,6 +16,9 @@
     ./firewall.nix
     ./wireguard.nix
     ./wireguard-mgmt.nix
+    ./tailscale-client.nix
+    ./tailscale-subnet-router.nix
+    ./headscale-server.nix
     ./dnsmasq.nix
     ./dns-blocklist.nix
     ./adguardhome.nix

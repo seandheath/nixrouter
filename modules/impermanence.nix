@@ -55,6 +55,9 @@
       # to it. Persist the real path; do NOT bind-mount the symlink
       # location or systemd fails with EBUSY at startup.
       "/var/lib/private/AdGuardHome"
+      "/var/lib/acme"                 # public Headscale TLS certificate/account
+      "/var/lib/headscale"            # SQLite DB and control-plane private keys
+      "/var/lib/tailscale"            # router node identity; avoids re-enrollment
 
       # sops-nix age key location
       "/var/lib/sops-nix"

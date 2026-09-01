@@ -91,6 +91,9 @@
   localEndpoints = {
     "hydrogen.luckyobserver.com" = "10.0.0.10";
     "router.luckyobserver.com" = "10.0.0.1";
+    # Public DNS points at the dynamic WAN address; this split-horizon answer
+    # avoids hairpinning when an already-enrolled client is at home.
+    "headscale.luckyobserver.com" = "10.0.0.1";
     "marketplace.luckyobserver.com" = "10.42.0.2";
   };
 

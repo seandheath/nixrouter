@@ -137,6 +137,11 @@ in
     # Enable flakes (required for flake-based upgrades)
     experimental-features = [ "nix-command" "flakes" ];
 
+    # Remote deployments copy locally built closures as admin before sudo
+    # performs activation. admin already has passwordless sudo, so trusting it
+    # here does not grant authority it does not already hold.
+    trusted-users = [ "root" "admin" ];
+
     # Use all CPU cores per build derivation
     cores = 0;
 

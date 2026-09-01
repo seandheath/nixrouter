@@ -56,7 +56,7 @@ in
     #
     # Re-enabling this is part of the IPv6 work, NOT a prerequisite for it:
     # assign routed VLAN prefixes and extend the nftables policy first.
-    "net.ipv6.conf.all.forwarding" = 0;
+    "net.ipv6.conf.all.forwarding" = lib.mkForce 0;
 
     # Allow IPv6 autoconfiguration on WAN only, so the router itself can reach
     # v6-only upstream endpoints. Value 2 = accept RA even when forwarding is
@@ -103,6 +103,7 @@ in
           80  # nginx (kids.lan + adguard.lan) -- deliberately stays: the kids-mode
               # toggle has to be reachable from any phone on home wifi in ten seconds,
               # and a phone on hydrogen's wgfam cannot reach this router at all.
+          443 # Public Headscale control plane (also needed before tailnet enrollment)
         ];
         allowedUDPPorts = [
           53  # DNS
@@ -121,6 +122,7 @@ in
       ${guestIf} = {
         allowedTCPPorts = [
           53   # DNS
+          443  # Headscale control plane
         ];
         allowedUDPPorts = [
           53   # DNS
@@ -132,6 +134,7 @@ in
       ${kidsIf} = {
         allowedTCPPorts = [
           53   # DNS
+          443  # Headscale control plane
         ];
         allowedUDPPorts = [
           53   # DNS
@@ -143,6 +146,7 @@ in
       ${iotIf} = {
         allowedTCPPorts = [
           53   # DNS (for initial resolution)
+          443  # Headscale control plane
         ];
         allowedUDPPorts = [
           53   # DNS
