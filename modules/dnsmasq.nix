@@ -85,39 +85,21 @@ in
       # --- Local Hostname Records ---
       # Resolve friendly LAN-only names to router IPs. The /name/ip
       # form covers the bare name and any subdomain, A and AAAA both.
-      # Only served on interfaces dnsmasq listens on (brLan, guest,
-      # iot, and wg0 - added by modules/wireguard.nix). kids VLAN uses
-      # AGH and doesn't see these.
+      # Only served on interfaces dnsmasq listens on (brLan, guest, and iot).
+      # The kids VLAN uses AGH and doesn't see these.
       #
       # The localServices entries are split-horizon records: public
       # *.luckyobserver.com names answered locally so they resolve to
-      # hydrogen (cfg.localServices.host) over LAN/VPN instead of
-      # egressing. See config.nix for the rationale and the no-wildcard
-      # caveat (must not shadow vpn.luckyobserver.com).
+      # hydrogen (cfg.localServices.host) over the LAN instead of egressing.
+      # See config.nix for the no-wildcard rationale.
       address = [
-        # The router's own admin UIs, answered at the MANAGEMENT TUNNEL address rather
-        # than at brLan.
-        #
-        # A phone must never be handed 10.0.0.1 as a routable destination: that is its
-        # own default gateway whenever it is on home wifi, and putting it in a tunnel's
-        # AllowedIPs takes the device's network out entirely. So the one answer that
-        # works from everywhere is 10.42.0.3 -- reachable over the tunnel at home and
-        # away alike, and nginx listens there (modules/nginx.nix).
-        #
-        # Consequence, and it is deliberate: kids.lan now requires a tunnel. A device on
-        # the wifi with no key cannot reach the parental-control toggle, which is the
-        # same rule everything else in the house follows.
-        "/kids.lan/${cfg.wireguardMgmt.address}"
-        "/adguard.lan/${cfg.wireguardMgmt.address}"
-        "/monitor.lan/${cfg.wireguardMgmt.address}"
+        "/kids.lan/${cfg.lan.address}"
+        "/adguard.lan/${cfg.lan.address}"
+        "/monitor.lan/${cfg.lan.address}"
       ] ++ lib.mapAttrsToList
         (name: address: "/${name}/${address}")
         cfg.localEndpoints
-      ++ [
-        # Internal clients use the router's LAN address for the same public WireGuard
-        # endpoint name; networking.nat.forwardPorts.loopbackIPs reflects 51821/51822.
-        "/${cfg.wireguard.ddnsHostname}/${cfg.lan.address}"
-      ] ++ map
+      ++ map
         (n: "/${n}.${cfg.localServices.domain}/${cfg.localServices.host}")
         cfg.localServices.names
       ;

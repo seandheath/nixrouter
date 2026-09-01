@@ -1,8 +1,7 @@
 # Dynamic DNS client (Cloudflare)
 #
-# Keeps an A record up to date with the router's current WAN IP so the
-# WireGuard VPN endpoint (vpn.luckyobserver.com) is always reachable
-# despite the dynamic public IP from the ISP.
+# Keeps the public Headscale A record synchronized with the router's
+# changing WAN IPv4 address.
 #
 # Credentials live in sops (secrets/secrets.yaml ::
 # ddclient.cloudflare-token). The Cloudflare token must be scoped to
@@ -18,7 +17,6 @@
     protocol = "cloudflare";
     zone = "luckyobserver.com";
     domains = [
-      "vpn.luckyobserver.com"
       "headscale.luckyobserver.com"
     ];
 

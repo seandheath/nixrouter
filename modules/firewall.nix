@@ -36,10 +36,6 @@ let
   guestIf = "${lan}.${toString vlans.guest.id}";
   kidsIf = "${lan}.${toString vlans.kids.id}";
   iotIf = "${lan}.${toString vlans.iot.id}";
-  wg = cfg.wireguard;
-  mgmt = cfg.wireguardMgmt;
-  wgIf = "wg0";
-  mgmtIf = "wgmgt";
 in
 {
   # Enable IP forwarding (required for routing)
@@ -72,15 +68,7 @@ in
     enable = true;
     filterForward = true;
 
-    # WireGuard authenticates before it exposes any network service, so its handshake
-    # sockets do not benefit from interface scoping. Keeping these global also matters
-    # for vpn.luckyobserver.com on the LAN: the same endpoint must work whether nftables
-    # reports an untagged frame against brLan, a bridge member, or the WAN interface.
-    # Declare each listener exactly once; every ordinary service remains interface-bound
-    # below, and forwarded 51821/51822 still require the DNAT rules in networking.nat.
-    allowedUDPPorts =
-      lib.optional wg.enable wg.port
-      ++ lib.optional mgmt.enable mgmt.port;
+    allowedUDPPorts = [ ];
 
     # Default: reject packets to closed ports (more polite than drop)
     rejectPackets = false;  # Use drop instead for stealth
@@ -98,11 +86,10 @@ in
       # Main LAN bridge - allow management services
       ${bridge} = {
         allowedTCPPorts = [
-          22  # Key-only SSH recovery path when the management tunnel is unavailable
+          22  # Key-only SSH recovery path when Tailscale is unavailable
           53  # DNS
-          80  # nginx (kids.lan + adguard.lan) -- deliberately stays: the kids-mode
-              # toggle has to be reachable from any phone on home wifi in ten seconds,
-              # and a phone on hydrogen's wgfam cannot reach this router at all.
+          80  # nginx (kids.lan + adguard.lan) -- the kids-mode toggle must remain
+              # reachable from a phone on home Wi-Fi.
           443 # Public Headscale control plane (also needed before tailnet enrollment)
         ];
         allowedUDPPorts = [
@@ -154,18 +141,9 @@ in
         ];
       };
 
-      ${wgIf} = lib.mkIf wg.enable {
-        allowedTCPPorts = [ 22 53 80 443 ];
-        allowedUDPPorts = [ 53 ];
-      };
-
-      ${mgmtIf} = lib.mkIf mgmt.enable {
-        allowedTCPPorts = [ 22 53 80 ];
-        allowedUDPPorts = [ 53 ];
-      };
     };
 
-    # Default-drop forwarding means VLANs and wgmgt reach nothing unless listed here.
+    # Default-drop forwarding means VLANs reach nothing unless listed here.
     # mkBefore keeps the Kids DNS denial and IoT log ahead of the WAN accepts generated
     # by networking.nat. DNAT forwards are admitted by the NixOS firewall itself.
     extraForwardRules = lib.mkBefore ''
@@ -177,9 +155,6 @@ in
       iifname "${iotIf}" ct state new log prefix "IOT-NEW: " level info
 
       iifname "${bridge}" accept comment "Main LAN may route to internal networks"
-      ${lib.optionalString wg.enable ''
-        iifname "${wgIf}" oifname "${bridge}" accept comment "Remote VPN may reach main LAN"
-      ''}
     '';
   };
 
@@ -205,12 +180,7 @@ in
     enable = true;
     externalInterface = wan;
 
-    # WAN -> internal port forwards (config.nix `portForwards`). Today this is
-    # hydrogen's two WireGuard hubs; see config.nix for what they carry and why
-    # nothing else is forwarded.
-    #
-    # NixOS supplies WAN DNAT. The explicit rules above supply matching hairpin DNAT and
-    # return-path masquerading for brLan and the Kids VLAN.
+    # Generic WAN -> internal port forwards (currently empty).
     forwardPorts = map (f: {
       sourcePort = f.port;
       proto = f.proto;

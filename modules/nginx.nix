@@ -20,15 +20,12 @@
 let
   cfg = import ../config.nix;
 
-  # brLan for anyone in the house, and the management tunnel's address for anyone
-  # outside it. NOT 10.0.0.1 over the tunnel: that is a client's own default gateway
-  # whenever it is on home wifi, and routing it into a tunnel takes that device's
-  # network out entirely (it did exactly that to sulfur on 2026-08-06). So remote
-  # clients reach these UIs at 10.42.0.3, and hydrogen's tunnel resolver answers
-  # kids.lan/adguard.lan with that address for peers already inside.
+  # LAN clients use the gateway address. Remote clients use the router's stable
+  # Tailscale address, published by Headscale DNS.
   listenAddrs = [
     { addr = cfg.lan.address; port = 80; }
-  ] ++ lib.optional cfg.wireguardMgmt.enable { addr = cfg.wireguardMgmt.address; port = 80; };
+    { addr = cfg.tailnet.routerAddress; port = 80; }
+  ];
 in
 {
   services.nginx = {

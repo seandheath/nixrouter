@@ -1,5 +1,18 @@
 # Decision Log
 
+## 2026-09-01 — Retire the legacy fleet tunnels
+
+**Decision:** Headscale/Tailscale is the router's only remote-access system. The router
+continues to expose the Headscale HTTPS control plane and advertises only `10.0.0.0/24`;
+it does not advertise a default route. The old UDP listeners, peer definitions, forwarded
+ports, Kids VLAN pinhole, split-horizon endpoint records, and encrypted server keys were
+removed.
+
+**Rationale:** tailscaled owns endpoint discovery, roaming, NAT traversal, and relay
+fallback. Headscale policy now expresses the administrator/family access boundary, while
+the router's firewall continues to isolate Guest, Kids, and IoT VLANs. DDNS updates only
+`headscale.luckyobserver.com`.
+
 ## 2026-08-28 — Restore the Kids VLAN wgfam pinhole
 
 **Decision:** Admit only `10.20.0.0/24 → 10.0.0.10:51821/udp` through the

@@ -90,6 +90,9 @@ in
       extraUpFlags = [ "--login-server=${cfg.loginServer}" ] ++ desiredUpFlags;
     };
 
+    # nginx binds the stable tail address before tailscaled may have restored it.
+    boot.kernel.sysctl."net.ipv4.ip_nonlocal_bind" = 1;
+
     networking.firewall.interfaces.tailscale0 = {
       allowedTCPPorts = cfg.allowedTCPPorts;
       allowedUDPPorts = cfg.allowedUDPPorts;

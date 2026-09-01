@@ -82,15 +82,14 @@ Internet <---> [ISP Modem] <---> WAN [Router] LAN <---> [Switch] <---> Clients
 - Decrypted at install time to persistence
 - Secrets available at runtime via `/run/secrets`
 
-### Remote Access (WireGuard)
+### Remote Access (Headscale/Tailscale)
 
-- Single `wg0` interface on the router (UDP 51820 on WAN)
-- VPN subnet: 10.40.0.0/24 (server 10.40.0.1)
-- Reaches `brLan` only; isolated from Guest/Kids/IoT VLANs
-- Split-tunnel by default (clients send only LAN-bound traffic)
-- DDNS via Cloudflare keeps `vpn.luckyobserver.com` pointing at the
-  current dynamic public IP
-- Server private key in sops; per-peer public keys in `config.nix`
+- Headscale is public over HTTPS at `headscale.luckyobserver.com`
+- The router advertises only `10.0.0.0/24`; it is not an exit node
+- Guest, Kids, and IoT VLANs are not advertised
+- Headscale policy auto-approves the route for `tag:subnet-router`
+- DDNS keeps the Headscale A record on the current dynamic public IP
+- Node identities persist in `/var/lib/tailscale`; one-time enrollment keys use sops
 
 ## Configuration Files
 

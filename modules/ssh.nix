@@ -8,20 +8,19 @@
 #
 # Reference: https://infosec.mozilla.org/guidelines/openssh
 
-{ config, lib, pkgs, ... }:
+{ config, pkgs, ... }:
 
 let
   cfg = import ../config.nix;
   lanAddress = cfg.lan.address;
-  mgmt = cfg.wireguardMgmt;
   bridgeDevice = "sys-subsystem-net-devices-${cfg.bridgeName}.device";
 in
 {
   services.openssh = {
     enable = true;
 
-    # Keep firewall ownership in modules/firewall.nix. SSH is admitted only on brLan
-    # (the recovery path) and wgmgt (normal remote administration), never globally.
+    # Keep firewall ownership in modules/firewall.nix. SSH listens normally, but is
+    # admitted only on brLan and tailscale0, never on WAN or the untrusted VLANs.
     openFirewall = false;
 
     settings = {
@@ -29,7 +28,7 @@ in
       # Keys only. The admin user's authorized_keys is delivered via sops
       # (users/admin.nix wires AuthorizedKeysFile to /run/secrets/admin-ssh-keys),
       # so password auth is redundant -- it only widens the surface reachable
-      # by anything that lands on brLan, including WireGuard peers.
+      # by anything that lands on brLan.
       #
       # Console login still works: users.users.admin.hashedPasswordFile keeps
       # the sops-managed password for physical/serial access, which is the
@@ -44,7 +43,7 @@ in
       PermitEmptyPasswords = false;
 
       # --- Network ---
-      # Listen only on LAN interface
+      # Interface reachability is enforced by the firewall.
 
       # --- Security Hardening ---
       # Disable TCP forwarding (prevent tunneling)
@@ -128,18 +127,6 @@ in
   # yet, which causes sshd's first bind attempt to fail with
   # "Cannot assign requested address" on cold boot. ExecStartPre
   # polls for the address so the first ExecStart sees it ready.
-  # Bind addresses.
-  #
-  # Bind both the LAN recovery address and the management-tunnel address. The firewall
-  # admits each only on its matching interface.
-  #
-  # Binding 10.42.0.3 before wgmgt exists works because modules/wireguard-mgmt.nix sets
-  # net.ipv4.ip_nonlocal_bind -- without it this races the interface on cold boot, the
-  # same way the ExecStartPre below exists to stop it racing the bridge address.
-  services.openssh.listenAddresses =
-    [ { addr = lanAddress; } ]
-    ++ lib.optional mgmt.enable { addr = mgmt.address; };
-
   systemd.services.sshd = {
     after = [ bridgeDevice ];
     wants = [ bridgeDevice ];

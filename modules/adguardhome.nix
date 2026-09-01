@@ -95,11 +95,7 @@ in
         # the toggle service has a chance to reconcile.
       };
 
-      filtering.rewrites = [{
-        domain = cfg.wireguard.ddnsHostname;
-        answer = cfg.lan.address;
-        enabled = true;
-      }] ++ lib.mapAttrsToList (domain: answer: {
+      filtering.rewrites = lib.mapAttrsToList (domain: answer: {
         inherit domain answer;
         enabled = true;
       }) cfg.localEndpoints;

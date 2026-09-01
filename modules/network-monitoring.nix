@@ -26,7 +26,6 @@ let
     "${vlans.guest.network}=Guest_WiFi"
     "${vlans.kids.network}=Kids_WiFi"
     "${vlans.iot.network}=IoT_WiFi"
-    "${cfg.wireguard.subnet}=Remote_Access_VPN"
   ];
 in
 {

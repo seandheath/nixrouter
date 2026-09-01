@@ -72,7 +72,12 @@ in
         name = "marketplace.luckyobserver.com";
         type = "A";
         value = "100.64.0.3";
-      }];
+      }]
+      ++ map (name: {
+        inherit name;
+        type = "A";
+        value = cfg.tailnet.routerAddress;
+      }) [ "kids.lan" "adguard.lan" "monitor.lan" ];
     policy = {
       # Tagged one-time pre-auth keys assign the non-human node identities.
       # Avoid naming home@ here so a brand-new database can load the policy

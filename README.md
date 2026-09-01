@@ -49,7 +49,7 @@ All DHCP leases are 12 hours. DNS/gateway per-network points to the router's VLA
 
 ### Network Monitoring
 
-Open `http://monitor.lan/` from the Main LAN or management WireGuard tunnel.
+Open `http://monitor.lan/` from the Main LAN or tailnet.
 ntopng shows active devices, traffic volume, application protocols, peers, and
 remote destinations, separated into Main LAN, Guest, Kids, and IoT interfaces.
 On first login, use the default `admin` / `admin` credentials; ntopng requires
