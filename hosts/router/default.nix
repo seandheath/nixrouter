@@ -57,7 +57,8 @@ in
     tailnetDomain = "tail.luckyobserver.com";
     owner = "home";
     dnsRecords =
-      map (name: {
+      [{ name = "git.luckyobserver.com"; type = "A"; value = "100.64.0.3"; }]
+      ++ map (name: {
         inherit name;
         type = "A";
         value = "10.0.0.10";
