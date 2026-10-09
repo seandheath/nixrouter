@@ -48,11 +48,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1791562098,
-        "narHash": "sha256-c31VNv3dUMmA0otoCaZEV1a7UYujv7dD+VsrVF7a7fE=",
+        "lastModified": 1791562741,
+        "narHash": "sha256-+nlM7AR+uWpQbaCsn8DtBoh0E1SiFPQL03V88gG5qdE=",
         "ref": "main",
-        "rev": "abb9254dbf07345f0e444fa6e685877d98dc0615",
-        "revCount": 10,
+        "rev": "7dfd3b1eff0eb49307f91d911aa5ef8746b90e8d",
+        "revCount": 11,
         "type": "git",
         "url": "https://git.luckyobserver.com/groundedgadgets/hestia-firmware"
       },
