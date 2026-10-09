@@ -100,6 +100,12 @@ in
           src = [ "tag:family" ];
           dst = [ "tag:server:22,80,443,2456-2458,25565-25575" ];
         }
+        {
+          # Rebuilds fetch flake inputs from the Forgejo on hydrogen.
+          action = "accept";
+          src = [ "tag:subnet-router" ];
+          dst = [ "tag:server:443" ];
+        }
       ];
     };
   };

@@ -75,7 +75,7 @@
     # KEEP IN STEP with `serviceNames` in the nixos repo, modules/family/devices.nix.
     # Two flakes cannot share a list without one importing the other, so this is a manual
     # pairing: adding a service means touching hydrogen's nginx, devices.nix, and here.
-    names = [ "nc" "immich" "calibre" "paper" "marketplace" "mc" "valheim" ];
+    names = [ "nc" "immich" "calibre" "paper" "marketplace" "mc" "valheim" "git" ];
   };
 
   # Names that need an address other than localServices.host. Keep these in both
