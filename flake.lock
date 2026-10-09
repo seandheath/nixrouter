@@ -23,7 +23,7 @@
     "hestia-daemon": {
       "inputs": {
         "nixpkgs": [
-          "hestia-firmware",
+          "hestia-host",
           "nixpkgs"
         ]
       },
@@ -41,25 +41,24 @@
         "url": "https://git.luckyobserver.com/groundedgadgets/hestia-daemon"
       }
     },
-    "hestia-firmware": {
+    "hestia-host": {
       "inputs": {
         "hestia-daemon": "hestia-daemon",
-        "liminix": "liminix",
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1791562741,
-        "narHash": "sha256-+nlM7AR+uWpQbaCsn8DtBoh0E1SiFPQL03V88gG5qdE=",
+        "lastModified": 1791564168,
+        "narHash": "sha256-r+Qaj1g/ZwKnx3u8QefFJdju9XB0LeUf/tAZxZ93A1k=",
         "ref": "main",
-        "rev": "7dfd3b1eff0eb49307f91d911aa5ef8746b90e8d",
-        "revCount": 11,
+        "rev": "31c2372ef424c174762d1aac1b311a4b6f46f77f",
+        "revCount": 1,
         "type": "git",
-        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-firmware"
+        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-host"
       },
       "original": {
         "ref": "main",
         "type": "git",
-        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-firmware"
+        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-host"
       }
     },
     "home-manager": {
@@ -104,24 +103,6 @@
         "type": "github"
       }
     },
-    "liminix": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1791302236,
-        "narHash": "sha256-/osMStAxmrS3G3kfrWAbwWrQIeasMvJaCA3Lr/dP8pU=",
-        "ref": "main",
-        "rev": "cd6360de601979cdc418c4861589507d078f3ab5",
-        "revCount": 1755,
-        "type": "git",
-        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-liminix"
-      },
-      "original": {
-        "ref": "main",
-        "rev": "cd6360de601979cdc418c4861589507d078f3ab5",
-        "type": "git",
-        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-liminix"
-      }
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1791260994,
@@ -157,7 +138,7 @@
     "root": {
       "inputs": {
         "disko": "disko",
-        "hestia-firmware": "hestia-firmware",
+        "hestia-host": "hestia-host",
         "impermanence": "impermanence",
         "nixpkgs": "nixpkgs_2",
         "sops-nix": "sops-nix"

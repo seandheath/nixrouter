@@ -1,4 +1,4 @@
-# Hestia daemon in a NixOS container (from the hestia-firmware flake).
+# Hestia daemon in a NixOS container (from the hestia-host flake).
 #
 # The container's WAN joins brLan and takes a DHCP lease from dnsmasq; the
 # kids network is VLAN 40 from the AP, reached through a macvlan. The host
@@ -11,7 +11,7 @@ let
   interfaces = import ../hosts/router/interfaces.nix;
 in
 {
-  imports = [ inputs.hestia-firmware.nixosModules.default ];
+  imports = [ inputs.hestia-host.nixosModules.default ];
 
   services.hestia = {
     enable = true;
@@ -19,7 +19,7 @@ in
     kidsInterface = "${interfaces.lan}.40";
   };
 
-  # flake-update (as admin) and rebuilds (as root) fetch hestia-firmware and its
+  # flake-update (as admin) and rebuilds (as root) fetch hestia-host and its
   # private inputs from the forge. The token stays in /run/secrets, never in the store.
   sops.secrets.hestia-forge-token.owner = "admin";
   programs.git.config.credential."https://git.luckyobserver.com".helper =

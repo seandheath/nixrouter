@@ -31,8 +31,8 @@
 
     # Hestia daemon in a container. No nixpkgs.follows: the daemon needs its own
     # pinned nixpkgs (newer Rust). Tracks main: the nightly flake-update deploys
-    # every hestia-firmware push.
-    hestia-firmware.url = "git+https://git.luckyobserver.com/groundedgadgets/hestia-firmware?ref=main";
+    # every hestia-host push.
+    hestia-host.url = "git+https://git.luckyobserver.com/groundedgadgets/hestia-host?ref=main";
   };
 
   outputs = { self, nixpkgs, disko, impermanence, sops-nix, ... }@inputs: {
