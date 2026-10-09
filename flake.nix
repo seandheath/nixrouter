@@ -28,6 +28,11 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Hestia daemon in a container. No nixpkgs.follows: the daemon needs its own
+    # pinned nixpkgs (newer Rust). Pinned by rev because flake-update runs
+    # `nix flake update`, which would otherwise deploy every Hestia push.
+    hestia-firmware.url = "git+https://git.luckyobserver.com/groundedgadgets/hestia-firmware?ref=main&rev=f5588505d027d64ba7c7b8fbc45fd2e16276ff7d";
   };
 
   outputs = { self, nixpkgs, disko, impermanence, sops-nix, ... }@inputs: {

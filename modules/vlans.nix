@@ -10,7 +10,8 @@
 #     │     ├── untagged -> brLan
 #     │     ├── eth1.10 (Guest)
 #     │     ├── eth1.20 (Kids)
-#     │     └── eth1.30 (IoT)
+#     │     ├── eth1.30 (IoT)
+#     │     └── eth1.40 (Hestia, unaddressed)
 #     └── eth2 <-> Unmanaged switch
 #
 # Reference: https://wiki.nixos.org/wiki/Systemd-networkd
@@ -91,6 +92,17 @@ in
         Id = vlans.iot.id;
       };
     };
+
+    # Hestia kids VLAN (40) - owned by the Hestia container
+    "10-vlan-hestia" = {
+      netdevConfig = {
+        Name = "${lan}.40";
+        Kind = "vlan";
+      };
+      vlanConfig = {
+        Id = 40;
+      };
+    };
   };
 
   systemd.network.networks = {
@@ -104,6 +116,7 @@ in
         "${lan}.${toString vlans.guest.id}"
         "${lan}.${toString vlans.kids.id}"
         "${lan}.${toString vlans.iot.id}"
+        "${lan}.40"
       ];
       networkConfig = {
         Bridge = bridge;
@@ -175,6 +188,21 @@ in
       ];
       networkConfig = {
         ConfigureWithoutCarrier = true;
+      };
+    };
+
+    # Hestia VLAN interface. Up but unaddressed: only the Hestia container
+    # uses it (through a macvlan), so the host never routes kids' traffic.
+    "30-vlan-hestia" = {
+      matchConfig = {
+        Name = "${lan}.40";
+      };
+      networkConfig = {
+        LinkLocalAddressing = "no";
+        ConfigureWithoutCarrier = true;
+      };
+      linkConfig = {
+        RequiredForOnline = "no";
       };
     };
   };

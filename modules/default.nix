@@ -22,6 +22,7 @@
     ./adguardhome.nix
     ./network-monitoring.nix
     ./kids-mode.nix
+    ./hestia.nix
     ./nginx.nix
     ./ssh.nix
     ./ddclient.nix

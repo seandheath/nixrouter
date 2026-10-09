@@ -58,6 +58,7 @@
       "/var/lib/acme"                 # public Headscale TLS certificate/account
       "/var/lib/headscale"            # SQLite DB and control-plane private keys
       "/var/lib/tailscale"            # router node identity; avoids re-enrollment
+      "/var/lib/nixos-containers"     # Hestia identity, pairing secret, kids, devices
 
       # sops-nix age key location
       "/var/lib/sops-nix"

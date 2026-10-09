@@ -20,6 +20,49 @@
         "type": "github"
       }
     },
+    "hestia-daemon": {
+      "inputs": {
+        "nixpkgs": [
+          "hestia-firmware",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791473510,
+        "narHash": "sha256-Rz+SRz5kPKxXwJ/VXHyK/JqAcrB4zVqDDQ2tljey+yU=",
+        "ref": "refs/heads/main",
+        "rev": "d5d7ee92811f6a1a113c2ce81555101f5e59216b",
+        "revCount": 1,
+        "type": "git",
+        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-daemon"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-daemon"
+      }
+    },
+    "hestia-firmware": {
+      "inputs": {
+        "hestia-daemon": "hestia-daemon",
+        "liminix": "liminix",
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1791556200,
+        "narHash": "sha256-EmQ+Io8l60JRZEfFsJRmCTpf4EeNheRYyyRtxdOaqlU=",
+        "ref": "main",
+        "rev": "f5588505d027d64ba7c7b8fbc45fd2e16276ff7d",
+        "revCount": 5,
+        "type": "git",
+        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-firmware"
+      },
+      "original": {
+        "ref": "main",
+        "rev": "f5588505d027d64ba7c7b8fbc45fd2e16276ff7d",
+        "type": "git",
+        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-firmware"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -62,13 +105,47 @@
         "type": "github"
       }
     },
+    "liminix": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791302236,
+        "narHash": "sha256-/osMStAxmrS3G3kfrWAbwWrQIeasMvJaCA3Lr/dP8pU=",
+        "ref": "main",
+        "rev": "cd6360de601979cdc418c4861589507d078f3ab5",
+        "revCount": 1755,
+        "type": "git",
+        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-liminix"
+      },
+      "original": {
+        "ref": "main",
+        "rev": "cd6360de601979cdc418c4861589507d078f3ab5",
+        "type": "git",
+        "url": "https://git.luckyobserver.com/groundedgadgets/hestia-liminix"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1785104993,
-        "narHash": "sha256-eKbrvPoAOFutbYMdbB3r5EQVmFxKv24iKqHPPUXA0gM=",
+        "lastModified": 1791260994,
+        "narHash": "sha256-Miqqk/ammqnTUxaoCyvtwoPeLbI1ksFyLxi/CazZpWY=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "8623c4c20aa4ca2f5fb81510d2944066c3fb0d96",
+        "rev": "151fa4e8ddfdd8dd25d945ad94ed54a13de9f6e4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1791254437,
+        "narHash": "sha256-qMSsgG+9tIdx282dMqGuJAUK3t6F36clM6efd0rXfes=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "b25309931cfda5f0b8805f462a29897eeae50168",
         "type": "github"
       },
       "original": {
@@ -81,8 +158,9 @@
     "root": {
       "inputs": {
         "disko": "disko",
+        "hestia-firmware": "hestia-firmware",
         "impermanence": "impermanence",
-        "nixpkgs": "nixpkgs",
+        "nixpkgs": "nixpkgs_2",
         "sops-nix": "sops-nix"
       }
     },
