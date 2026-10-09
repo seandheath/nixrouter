@@ -30,8 +30,9 @@ in
     serviceConfig = {
       Type = "oneshot";
       WorkingDirectory = flakePath;
-      # Run as root to write flake.lock
-      User = "root";
+      # The clone is admin's; running as root would leave root-owned files
+      # in it that admin can no longer update.
+      User = "admin";
       # Limit resources during update
       MemoryMax = "512M";
       CPUQuota = "50%";
@@ -106,9 +107,8 @@ in
     after = [ "flake-update.service" ];
   };
 
-  # The auto-upgrade services (flake-update, nixos-upgrade) run as root, but
-  # the flake repo at ${flakePath} is owned by the admin user. Modern
-  # git/libgit2 refuses to open a repo it doesn't own ("detected dubious
+  # nixos-upgrade runs as root, but the flake repo at ${flakePath} is owned
+  # by the admin user. Modern git/libgit2 refuses to open a repo it doesn't own ("detected dubious
   # ownership"), which makes the git+file:// flake fetch fail with exit 1 -
   # silently stalling all upgrades. Mark the path safe so root can read it.
   #

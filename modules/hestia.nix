@@ -19,9 +19,9 @@ in
     kidsInterface = "${interfaces.lan}.40";
   };
 
-  # Rebuilds as root fetch hestia-firmware and its private inputs from the
-  # forge. The token stays in /run/secrets (root-only), never in the store.
-  sops.secrets.hestia-forge-token = { };
+  # flake-update (as admin) and rebuilds (as root) fetch hestia-firmware and its
+  # private inputs from the forge. The token stays in /run/secrets, never in the store.
+  sops.secrets.hestia-forge-token.owner = "admin";
   programs.git.config.credential."https://git.luckyobserver.com".helper =
     "!f() { test \"$1\" = get && echo username=token && echo password=$(cat ${config.sops.secrets.hestia-forge-token.path}); }; f";
 }
