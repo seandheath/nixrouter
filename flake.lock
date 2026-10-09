@@ -28,11 +28,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791560640,
-        "narHash": "sha256-MUWLlz8mXYAWLJtZJLu3fidnpk1frj7eR2alcV3YaRk=",
+        "lastModified": 1791562092,
+        "narHash": "sha256-CG0CtYnqraH+bXqrYCCYVH3tkUpHlKy4b9L2Qx1sEVQ=",
         "ref": "refs/heads/main",
-        "rev": "5f68e451f58f4367dd389ae77e429035f9e42cdf",
-        "revCount": 18,
+        "rev": "37bdda829ecc37ff94c94384a1b09bfbf36e0fb7",
+        "revCount": 19,
         "type": "git",
         "url": "https://git.luckyobserver.com/groundedgadgets/hestia-daemon"
       },
@@ -48,17 +48,16 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1791560652,
-        "narHash": "sha256-XhBbTQAQ+b+9V/SoqAMmGm6X/geUp8sQE4d+rlFAUGQ=",
+        "lastModified": 1791562098,
+        "narHash": "sha256-c31VNv3dUMmA0otoCaZEV1a7UYujv7dD+VsrVF7a7fE=",
         "ref": "main",
-        "rev": "5b89ec060d96090af4c1a0a80f50fab5807705b6",
-        "revCount": 8,
+        "rev": "abb9254dbf07345f0e444fa6e685877d98dc0615",
+        "revCount": 10,
         "type": "git",
         "url": "https://git.luckyobserver.com/groundedgadgets/hestia-firmware"
       },
       "original": {
         "ref": "main",
-        "rev": "5b89ec060d96090af4c1a0a80f50fab5807705b6",
         "type": "git",
         "url": "https://git.luckyobserver.com/groundedgadgets/hestia-firmware"
       }
