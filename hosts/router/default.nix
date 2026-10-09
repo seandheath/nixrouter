@@ -47,8 +47,8 @@ in
     useDHCP = false;
   };
 
-  # Headscale is reachable before the tailnet exists; tailscaled is a separate
-  # node on that control plane and advertises only the trusted home LAN.
+  # Headscale is reachable before the tailnet exists; tailscaled is a separate native
+  # node on that control plane. No LAN or default route is advertised.
   fleet.headscaleServer = {
     enable = true;
     hostname = "headscale.luckyobserver.com";
@@ -61,19 +61,16 @@ in
       ++ map (name: {
         inherit name;
         type = "A";
-        value = "10.0.0.10";
+        value = "100.64.0.3";
       }) [
         "nc.luckyobserver.com"
         "immich.luckyobserver.com"
         "paper.luckyobserver.com"
         "calibre.luckyobserver.com"
+        "marketplace.luckyobserver.com"
         "mc.luckyobserver.com"
+        "valheim.luckyobserver.com"
       ]
-      ++ [{
-        name = "marketplace.luckyobserver.com";
-        type = "A";
-        value = "100.64.0.3";
-      }]
       ++ map (name: {
         inherit name;
         type = "A";
@@ -92,7 +89,6 @@ in
         "tag:server" = [ "group:preauth-only" ];
         "tag:subnet-router" = [ "group:preauth-only" ];
       };
-      autoApprovers.routes."10.0.0.0/24" = [ "tag:subnet-router" ];
       acls = [
         {
           action = "accept";
@@ -102,7 +98,7 @@ in
         {
           action = "accept";
           src = [ "tag:family" ];
-          dst = [ "10.0.0.10:22,80,443,2456-2458,25565-25575" ];
+          dst = [ "tag:server:22,80,443,2456-2458,25565-25575" ];
         }
       ];
     };
@@ -112,14 +108,9 @@ in
     enable = true;
     acceptRoutes = false;
     tags = [ "tag:subnet-router" ];
+    reconcileFlags = [ "--advertise-routes=" ];
     allowedTCPPorts = [ 22 53 80 443 ];
     allowedUDPPorts = [ 53 ];
-  };
-
-  fleet.tailscaleSubnetRouter = {
-    enable = true;
-    routes = [ cfg.lan.network ];
-    lanInterface = cfg.bridgeName;
   };
 
   # WAN interface: DHCP from upstream ISP

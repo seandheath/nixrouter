@@ -64,28 +64,26 @@
   # Split-horizon DNS — internal service names answered locally for any
   # client using this router as its resolver. The
   # names resolve to hydrogen, which runs nginx and terminates TLS with a
-  # *.luckyobserver.com Cloudflare DNS-01 wildcard cert. This keeps
-  # self-hosted traffic on the LAN instead of egressing.
+  # *.luckyobserver.com Cloudflare DNS-01 wildcard cert. All enrolled clients
+  # use hydrogen's stable tail address at home and away.
   #
   # Per-subdomain only — do NOT wildcard luckyobserver.com here: it's a
   # real public zone and a wildcard would clobber public services.
   localServices = {
-    host = "10.0.0.10";
+    host = "100.64.0.3";
     domain = "luckyobserver.com";
     # KEEP IN STEP with `serviceNames` in the nixos repo, modules/family/devices.nix.
     # Two flakes cannot share a list without one importing the other, so this is a manual
     # pairing: adding a service means touching hydrogen's nginx, devices.nix, and here.
-    names = [ "nc" "immich" "calibre" "paper" "mc" ];  # <name>.<domain>
+    names = [ "nc" "immich" "calibre" "paper" "marketplace" "mc" "valheim" ];
   };
 
-  # Names that need an address other than localServices.host. Marketplace resolves to
-  # hydrogen's direct tail address so Headscale can enforce its administrative ACL.
-  # Keep these in both resolver paths (dnsmasq and the kids VLAN's AdGuard Home).
+  # Names that need an address other than localServices.host. Keep these in both
+  # resolver paths (dnsmasq and the kids VLAN's AdGuard Home).
   localEndpoints = {
     # Public DNS points at the dynamic WAN address; this split-horizon answer
     # avoids hairpinning during enrollment from home.
     "headscale.luckyobserver.com" = "10.0.0.1";
-    "marketplace.luckyobserver.com" = "100.64.0.3";
   };
 
   portForwards = [ ];

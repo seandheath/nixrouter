@@ -1,5 +1,40 @@
 # Decision Log
 
+## 2026-09-16 — Headscale compatibility with Android 1.102
+
+Use Headscale 0.29.3 while stable nixpkgs still supplies 0.28.0. Android 1.102.3
+crashes on opening against the older server, matching
+[upstream issue 21128](https://github.com/tailscale/tailscale/issues/21128).
+Remove the package override when stable nixpkgs reaches 0.29.3 or newer.
+
+## 2026-09-06 — Deploy the service-address migration
+
+The running router still served `10.0.0.10` for Nextcloud, although hydrogen now
+accepts HTTPS through its native Tailscale address. This broke Android access;
+the laptop's `/etc/hosts` override concealed the stale Headscale answer.
+
+Applied the pending September 3 DNS, policy, and subnet-routing changes to
+`/nix/persist/etc/nixos` on the router, preserving its newer September 5 lock file.
+Built and activated with that lock. Headscale's DNS query and the router's resolver
+now return `100.64.0.3`; Nextcloud's HTTPS status endpoint responds normally.
+
+## 2026-09-03 — Route services directly over Tailscale
+
+**Decision:** Point every hydrogen service record at its stable `100.64.0.3` tail address,
+grant `tag:family` the declared ports on `tag:server`, and withdraw the router's
+`10.0.0.0/24` advertisement. The router keeps a native tail identity for its own services;
+the public Headscale endpoint remains reachable independently of the tailnet.
+
+**Rationale:** Linux prioritizes accepted routes in Tailscale table 52 over an identical
+directly connected LAN route. That hairpinned at-home traffic through the router and SNAT,
+and disrupted Valheim's sustained UDP session. Direct node addresses preserve Headscale
+identity and ACL enforcement end to end, take the same name/path at home and away, and
+leave ordinary LAN traffic on the physical LAN.
+
+All HTTPS vhosts now share the family service boundary: an IP/port ACL cannot distinguish
+Marketplace from the other names on `100.64.0.3:443`. Restoring an admin-only vhost
+requires application authentication or a distinct tail identity.
+
 ## 2026-09-01 — Retire the legacy fleet tunnels
 
 **Decision:** Headscale/Tailscale is the router's only remote-access system. The router

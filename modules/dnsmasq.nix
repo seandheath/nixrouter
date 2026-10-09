@@ -90,7 +90,7 @@ in
       #
       # The localServices entries are split-horizon records: public
       # *.luckyobserver.com names answered locally so they resolve to
-      # hydrogen (cfg.localServices.host) over the LAN instead of egressing.
+      # hydrogen (cfg.localServices.host) over its native tail identity.
       # See config.nix for the no-wildcard rationale.
       address = [
         "/kids.lan/${cfg.lan.address}"

@@ -68,10 +68,9 @@ Internet <---> [ISP Modem] <---> WAN [Router] LAN <---> [Switch] <---> Clients
 - DNSSEC validation
 - Upstream: Cloudflare + Quad9
 - 10,000 entry DNS cache
-- Split-horizon records: `*.luckyobserver.com` service names
-  (`nc`, `immich`, `calibre`, `paper`) resolve locally to hydrogen
-  (`10.0.0.10`) for LAN + VPN clients, keeping self-hosted traffic on the
-  LAN/tunnel. Hydrogen runs nginx and terminates TLS with the
+- Split-horizon records: `*.luckyobserver.com` service names resolve to hydrogen's
+  native tail address (`100.64.0.3`) for enrolled clients at home and away. Hydrogen
+  runs nginx and terminates TLS with the
   `*.luckyobserver.com` wildcard cert (lives in the `nixos` repo, not
   here). Per-subdomain only — never wildcard the public apex.
 
@@ -85,9 +84,8 @@ Internet <---> [ISP Modem] <---> WAN [Router] LAN <---> [Switch] <---> Clients
 ### Remote Access (Headscale/Tailscale)
 
 - Headscale is public over HTTPS at `headscale.luckyobserver.com`
-- The router advertises only `10.0.0.0/24`; it is not an exit node
-- Guest, Kids, and IoT VLANs are not advertised
-- Headscale policy auto-approves the route for `tag:subnet-router`
+- Router and hydrogen are native tailnet nodes; no LAN or default route is advertised
+- Headscale policy grants family clients only declared service ports on `tag:server`
 - DDNS keeps the Headscale A record on the current dynamic public IP
 - Node identities persist in `/var/lib/tailscale`; one-time enrollment keys use sops
 

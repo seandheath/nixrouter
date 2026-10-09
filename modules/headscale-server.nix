@@ -64,6 +64,19 @@ in
 
     services.headscale = {
       enable = true;
+      # Remove when stable nixpkgs has 0.29.3: 0.28 crashes Android 1.102 clients.
+      package = if lib.versionOlder pkgs.headscale.version "0.29.3" then
+        pkgs.headscale.overrideAttrs (final: _: {
+          version = "0.29.3";
+          src = pkgs.fetchFromGitHub {
+            owner = "juanfont";
+            repo = "headscale";
+            tag = "v${final.version}";
+            hash = "sha256-ddJHSEqZd++JeG3UjUwzw7i45FlZYggUwhEG/tDkq0s=";
+          };
+          vendorHash = "sha256-fzKyXNMw/2yAEhaTZu0n1NXatPO2IP0HFA2ey1vZIYM=";
+        })
+      else pkgs.headscale;
       address = "127.0.0.1";
       port = 8080;
       settings = {
