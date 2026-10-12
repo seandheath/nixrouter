@@ -113,7 +113,9 @@ in
 
       # Enable DNSSEC validation
       dnssec = true;
-      trust-anchor = ".,20326,8,2,E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D";
+      # dnsmasq has no RFC 5011 rollover; use the root anchors the package ships
+      # so KSK changes arrive with nixpkgs updates.
+      conf-file = "${config.services.dnsmasq.package}/share/dnsmasq/trust-anchors.conf";
 
       # Cache size (number of DNS entries)
       cache-size = 10000;
