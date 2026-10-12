@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1781152676,
-        "narHash": "sha256-RxWs5ND31KzTG7wvMM+PMfUjyNpmIEr999lqNARaM5o=",
+        "lastModified": 1789770686,
+        "narHash": "sha256-uZkBR7yHdIKUFB5SZdfgh1qkGfI3XmYmI/lTiquxbck=",
         "owner": "nix-community",
         "repo": "disko",
-        "rev": "ff8702b4de27f72b4c78573dfb89ec74e36abdf1",
+        "rev": "725ea35e410ad83be4931d1bff7e090eacaf3563",
         "type": "github"
       },
       "original": {
@@ -28,11 +28,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791562092,
-        "narHash": "sha256-CG0CtYnqraH+bXqrYCCYVH3tkUpHlKy4b9L2Qx1sEVQ=",
+        "lastModified": 1791752935,
+        "narHash": "sha256-5VCGO1OXZK1IaN6PrqBYiJdPQWIEcDG2na/mNAE23Ms=",
         "ref": "refs/heads/main",
-        "rev": "37bdda829ecc37ff94c94384a1b09bfbf36e0fb7",
-        "revCount": 19,
+        "rev": "95f9a8518c60a669866b70c0041b18903afd6af8",
+        "revCount": 21,
         "type": "git",
         "url": "https://git.luckyobserver.com/groundedgadgets/hestia-daemon"
       },
@@ -47,11 +47,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1791564168,
-        "narHash": "sha256-r+Qaj1g/ZwKnx3u8QefFJdju9XB0LeUf/tAZxZ93A1k=",
+        "lastModified": 1791753740,
+        "narHash": "sha256-lu02kSF652WKTx5RqyKPMJJ3wP0uLet7bm8jCXuta4s=",
         "ref": "main",
-        "rev": "31c2372ef424c174762d1aac1b311a4b6f46f77f",
-        "revCount": 1,
+        "rev": "9440b28b74ace789016f9d5cf668526cf84f0a84",
+        "revCount": 3,
         "type": "git",
         "url": "https://git.luckyobserver.com/groundedgadgets/hestia-host"
       },
@@ -121,11 +121,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1791254437,
-        "narHash": "sha256-qMSsgG+9tIdx282dMqGuJAUK3t6F36clM6efd0rXfes=",
+        "lastModified": 1791662279,
+        "narHash": "sha256-xI8L+UwJLIg75yVJwLPsY+AUEP1teCT3FyuvodyJu2Y=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "b25309931cfda5f0b8805f462a29897eeae50168",
+        "rev": "6fcc160353f63555b560f25588925133c8f61f2a",
         "type": "github"
       },
       "original": {
@@ -151,11 +151,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1783174389,
-        "narHash": "sha256-aCWC8ngycU7OdJrU2+Je3qf+1a2ykuBvpPhZT/9tXMc=",
+        "lastModified": 1791710405,
+        "narHash": "sha256-mVD4XIc5JkqMW2K04IkFUzHgHmyJZlzw5ktfgMDCbKU=",
         "owner": "Mic92",
         "repo": "sops-nix",
-        "rev": "f1406619a3884cd5c47992a70b8b35c9c0fcb4c9",
+        "rev": "ee48786c6f9160d2c1a084aac841f68195b8420c",
         "type": "github"
       },
       "original": {
