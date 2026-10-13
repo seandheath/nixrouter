@@ -28,11 +28,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791752935,
-        "narHash": "sha256-5VCGO1OXZK1IaN6PrqBYiJdPQWIEcDG2na/mNAE23Ms=",
+        "lastModified": 1791918556,
+        "narHash": "sha256-TQAEfqlgvrCJpwA7kWf5F6yaZ7wc6y6zzWv7tmKbIKM=",
         "ref": "refs/heads/main",
-        "rev": "95f9a8518c60a669866b70c0041b18903afd6af8",
-        "revCount": 21,
+        "rev": "bc91708a9f3e2194fd5f9b13516deb1ef057e57b",
+        "revCount": 25,
         "type": "git",
         "url": "https://git.luckyobserver.com/groundedgadgets/hestia-daemon"
       },
@@ -47,11 +47,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1791753740,
-        "narHash": "sha256-lu02kSF652WKTx5RqyKPMJJ3wP0uLet7bm8jCXuta4s=",
+        "lastModified": 1791919139,
+        "narHash": "sha256-ky3aI/WxLAwW5HQx9w3uGLurCBUyEjI6TwaBre/f3d0=",
         "ref": "main",
-        "rev": "9440b28b74ace789016f9d5cf668526cf84f0a84",
-        "revCount": 3,
+        "rev": "871bf18093cefc850328404a04e416cf0964d305",
+        "revCount": 6,
         "type": "git",
         "url": "https://git.luckyobserver.com/groundedgadgets/hestia-host"
       },

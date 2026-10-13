@@ -16,7 +16,7 @@ in
   services.hestia = {
     enable = true;
     lanBridge = cfg.bridgeName;
-    kidsInterface = "${interfaces.lan}.40";
+    managedInterface = "${interfaces.lan}.40";
   };
 
   # flake-update (as admin) and rebuilds (as root) fetch hestia-host and its
