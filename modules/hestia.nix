@@ -17,6 +17,7 @@ in
     enable = true;
     lanBridge = cfg.bridgeName;
     managedInterface = "${interfaces.lan}.40";
+    relayUrl = "relay.groundedgadgets.com";
   };
 
   # flake-update (as admin) and rebuilds (as root) fetch hestia-host and its
